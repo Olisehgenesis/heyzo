@@ -13,115 +13,22 @@ import {
 } from 'viem';
 import { celo } from 'viem/chains';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk';
-
-// Contract ABI for HeyZo contract
-const HEYZO_ABI = [
-  {
-    inputs: [],
-    stateMutability: 'nonpayable',
-    type: 'constructor'
-  },
-  {
-    inputs: [
-      { name: 'token', type: 'address' },
-      { name: 'to', type: 'address' },
-      { name: 'amount', type: 'uint256' }
-    ],
-    name: 'adminSend',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function'
-  },
-  {
-    inputs: [
-      { name: 'token', type: 'address' },
-      { name: 'amount', type: 'uint256' }
-    ],
-    name: 'claim',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function'
-  },
-  {
-    inputs: [],
-    name: 'admin',
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
-    inputs: [],
-    name: 'cooldown',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
-    inputs: [],
-    name: 'dayLength',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
-    inputs: [
-      { name: 'token', type: 'address' }
-    ],
-    name: 'getUserInfo',
-    outputs: [
-      { name: 'streak', type: 'uint256' },
-      { name: 'effectiveMaxSend', type: 'uint256' },
-      { name: 'lastClaim', type: 'uint256' }
-    ],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
-    inputs: [
-      { name: 'token', type: 'address' }
-    ],
-    name: 'pools',
-    outputs: [
-      { name: 'total', type: 'uint256' },
-      { name: 'maxSend', type: 'uint256' },
-      { name: 'isNative', type: 'bool' }
-    ],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
-    inputs: [
-      { name: 'token', type: 'address' },
-      { name: 'total', type: 'uint256' },
-      { name: 'maxSend', type: 'uint256' },
-      { name: 'isNative', type: 'bool' }
-    ],
-    name: 'setPool',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function'
-  },
-  {
-    inputs: [
-      { name: 'token', type: 'address' },
-      { name: 'amount', type: 'uint256' }
-    ],
-    name: 'withdraw',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function'
-  },
-  {
-    stateMutability: 'payable',
-    type: 'receive'
-  }
-] as const;
+import { HeyZoABI } from '../abi/abi';
 
 // Contract address - you'll need to set this to your deployed contract address
-const HEYZO_CONTRACT_ADDRESS = '0x6135c199480C2198E46F6e1b63Da5bC03ad04E6E' as Address;
+//get from env NEXT_PUBLIC_CONTRACT_ADDRESS
+const HEYZO_CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x6135c199480C2198E46F6e1b63Da5bC03ad04e6E') as Address;
+
+// Validate contract address
+if (!HEYZO_CONTRACT_ADDRESS || HEYZO_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
+  console.warn('Warning: NEXT_PUBLIC_CONTRACT_ADDRESS not set or invalid. Using fallback address.');
+}
 
 // Your Divvi Identifier
 const DIVVI_CONSUMER_ADDRESS = '0x29D899bB6C539C59ceA731041AF5c15668e88280';
+
+// DRPC HTTP endpoint for Celo
+const DRPC_HTTP_ENDPOINT = 'https://celo.drpc.org';
 
 export interface Pool {
   total: bigint;
@@ -197,7 +104,7 @@ export function useHeyZo(): UseHeyZoReturn {
   useEffect(() => {
     const client = createPublicClient({
       chain: celo, // Default to Celo mainnet
-      transport: http(),
+      transport: http(DRPC_HTTP_ENDPOINT),
     });
     setPublicClient(client as any);
   }, []);
@@ -215,10 +122,10 @@ export function useHeyZo(): UseHeyZoReturn {
             setIsConnected(true);
             setChain(celo);
             
-            // Create wallet client
+            // Create wallet client with DRPC endpoint
             const client = createWalletClient({
               chain: celo,
-              transport: http(),
+              transport: http(DRPC_HTTP_ENDPOINT),
               account,
             });
             setWalletClient(client);
@@ -307,17 +214,17 @@ export function useHeyZo(): UseHeyZoReturn {
       const [adminResult, cooldownResult, dayLengthResult] = await Promise.all([
         publicClient.readContract({
           address: HEYZO_CONTRACT_ADDRESS,
-          abi: HEYZO_ABI,
+          abi: HeyZoABI,
           functionName: 'admin',
         }),
         publicClient.readContract({
           address: HEYZO_CONTRACT_ADDRESS,
-          abi: HEYZO_ABI,
+          abi: HeyZoABI,
           functionName: 'cooldown',
         }),
         publicClient.readContract({
           address: HEYZO_CONTRACT_ADDRESS,
-          abi: HEYZO_ABI,
+          abi: HeyZoABI,
           functionName: 'dayLength',
         }),
       ]);
@@ -337,7 +244,7 @@ export function useHeyZo(): UseHeyZoReturn {
     try {
       const result = await publicClient.readContract({
         address: HEYZO_CONTRACT_ADDRESS,
-        abi: HEYZO_ABI,
+        abi: HeyZoABI,
         functionName: 'pools',
         args: [token],
       });
@@ -361,7 +268,7 @@ export function useHeyZo(): UseHeyZoReturn {
     try {
       const result = await publicClient.readContract({
         address: HEYZO_CONTRACT_ADDRESS,
-        abi: HEYZO_ABI,
+        abi: HeyZoABI,
         functionName: 'getUserInfo',
         args: [token], // Only pass token as ABI expects
       });
@@ -447,7 +354,7 @@ export function useHeyZo(): UseHeyZoReturn {
       
       // Encode the function call manually and add referral tag
       const functionData = encodeFunctionData({
-        abi: HEYZO_ABI,
+        abi: HeyZoABI,
         functionName: 'claim',
         args: [token as `0x${string}`, amount],
       });
@@ -495,7 +402,7 @@ export function useHeyZo(): UseHeyZoReturn {
       
       // Encode the function call manually and add referral tag
       const functionData = encodeFunctionData({
-        abi: HEYZO_ABI,
+        abi: HeyZoABI,
         functionName: 'setPool',
         args: [token, total, maxSend, isNative],
       });
@@ -542,7 +449,7 @@ export function useHeyZo(): UseHeyZoReturn {
       
       // Encode the function call manually and add referral tag
       const functionData = encodeFunctionData({
-        abi: HEYZO_ABI,
+        abi: HeyZoABI,
         functionName: 'adminSend',
         args: [token, to, amount],
       });
@@ -585,7 +492,7 @@ export function useHeyZo(): UseHeyZoReturn {
       
       // Encode the function call manually and add referral tag
       const functionData = encodeFunctionData({
-        abi: HEYZO_ABI,
+        abi: HeyZoABI,
         functionName: 'withdraw',
         args: [token, amount],
       });
@@ -613,45 +520,36 @@ export function useHeyZo(): UseHeyZoReturn {
     }
   }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
 
-  // Generic read contract function
+  // Utility functions
   const readContract = useCallback(async (params: any) => {
-    if (!publicClient) {
-      throw new Error('Public client not available');
-    }
-
-    return await publicClient.readContract(params);
+    if (!publicClient) throw new Error('Public client not initialized');
+    return publicClient.readContract(params);
   }, [publicClient]);
 
-  // Generic write contract function
-  const writeContract = useCallback(async (params: any): Promise<{ hash: string }> => {
-    if (!walletClient || !address) {
-      throw new Error('Wallet not connected');
+  const writeContract = useCallback(async (params: any) => {
+    if (!walletClient || !address) throw new Error('Wallet not connected');
+    setIsLoading(true);
+    setError(null);
+    try {
+      const hash = await walletClient.sendTransaction(params);
+      await submitReferralToDivvi(hash);
+      return { hash };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to write contract';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
+  }, [walletClient, address, submitReferralToDivvi]);
 
-    const hash = await walletClient.writeContract({
-      ...params,
-      account: address,
-      chain: celo,
-    });
-
-    return { hash };
-  }, [walletClient, address]);
-
-  // Generic simulate contract function
   const simulateContract = useCallback(async (params: any) => {
-    if (!publicClient) {
-      throw new Error('Public client not available');
-    }
-
-    return await publicClient.simulateContract(params);
+    if (!publicClient) throw new Error('Public client not initialized');
+    return publicClient.simulateContract(params);
   }, [publicClient]);
 
-  // Generic watch contract event function
   const watchContractEvent = useCallback((params: any) => {
-    if (!publicClient) {
-      throw new Error('Public client not available');
-    }
-
+    if (!publicClient) throw new Error('Public client not initialized');
     return publicClient.watchContractEvent(params);
   }, [publicClient]);
 

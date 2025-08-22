@@ -1,15 +1,32 @@
 import Navigation from './components/Navigation';
 import Link from 'next/link';
+import { 
+  User, 
+  Shield, 
+  CheckCircle, 
+  Zap, 
+  Globe, 
+  Wallet, 
+  Code, 
+  Rocket,
+  Settings,
+  TrendingUp,
+  Calendar,
+  Star
+} from 'lucide-react';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Navigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Hero Section */}
         <div className="text-center mb-20">
-          <h1 className="text-6xl font-bold text-gray-900 mb-6">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl mb-8 shadow-2xl">
+            <Zap className="w-12 h-12 text-white" />
+          </div>
+          <h1 className="text-6xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             HeyZo
           </h1>
           <p className="text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
@@ -23,12 +40,10 @@ export default function HomePage() {
         <div className="flex flex-col sm:flex-row gap-6 justify-center mb-20">
           <Link
             href="/user"
-            className="group bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-6 px-12 rounded-2xl text-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-2xl"
+            className="group bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-6 px-12 rounded-2xl text-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-blue-500/25"
           >
             <div className="flex items-center justify-center space-x-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <User className="w-8 h-8" />
               <span>User Dashboard</span>
             </div>
             <p className="text-blue-100 text-sm mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -38,12 +53,10 @@ export default function HomePage() {
           
           <Link
             href="/admin"
-            className="group bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-6 px-12 rounded-2xl text-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-2xl"
+            className="group bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-6 px-12 rounded-2xl text-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-purple-500/25"
           >
             <div className="flex items-center justify-center space-x-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
+              <Shield className="w-8 h-8" />
               <span>Admin Panel</span>
             </div>
             <p className="text-purple-100 text-sm mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -53,76 +66,62 @@ export default function HomePage() {
         </div>
 
         {/* App Features */}
-        <div className="bg-white rounded-2xl shadow-xl p-12 mb-16">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-12 mb-16 border border-white/20">
           <h2 className="text-4xl font-bold text-gray-900 mb-8 text-center">What is HeyZo?</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-4">For Users</h3>
-              <ul className="space-y-3 text-gray-600">
+              <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
+                <User className="w-6 h-6 text-blue-600 mr-3" />
+                For Users
+              </h3>
+              <ul className="space-y-4 text-gray-600">
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>Connect MetaMask wallet to Celo network</span>
                 </li>
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>Claim tokens daily from available pools</span>
                 </li>
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>Build streaks for boosted rewards</span>
                 </li>
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>View real-time pool information</span>
                 </li>
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>Track claim cooldowns and streaks</span>
                 </li>
               </ul>
             </div>
             
             <div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-4">For Admins</h3>
-              <ul className="space-y-3 text-gray-600">
+              <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
+                <Shield className="w-6 h-6 text-purple-600 mr-3" />
+                For Admins
+              </h3>
+              <ul className="space-y-4 text-gray-600">
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" />
                   <span>Create and manage token pools</span>
                 </li>
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" />
                   <span>Set distribution amounts and limits</span>
                 </li>
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" />
                   <span>Send tokens directly to users</span>
                 </li>
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" />
                   <span>Withdraw funds from pools</span>
                 </li>
                 <li className="flex items-start space-x-3">
-                  <svg className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <CheckCircle className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" />
                   <span>Monitor pool balances and usage</span>
                 </li>
               </ul>
@@ -131,12 +130,12 @@ export default function HomePage() {
         </div>
 
         {/* How It Works */}
-        <div className="bg-white rounded-2xl shadow-xl p-12 mb-16">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-12 mb-16 border border-white/20">
           <h2 className="text-4xl font-bold text-gray-900 mb-8 text-center">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <span className="text-3xl font-bold text-white">1</span>
+            <div className="text-center group">
+              <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300">
+                <TrendingUp className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Connect & Explore</h3>
               <p className="text-gray-600 leading-relaxed">
@@ -145,9 +144,9 @@ export default function HomePage() {
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <span className="text-3xl font-bold text-white">2</span>
+            <div className="text-center group">
+              <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300">
+                <Calendar className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Claim Daily</h3>
               <p className="text-gray-600 leading-relaxed">
@@ -156,9 +155,9 @@ export default function HomePage() {
               </p>
             </div>
             
-            <div className="text-center">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <span className="text-3xl font-bold text-white">3</span>
+            <div className="text-center group">
+              <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300">
+                <Star className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Build & Earn</h3>
               <p className="text-gray-600 leading-relaxed">
@@ -170,36 +169,36 @@ export default function HomePage() {
         </div>
 
         {/* Technology Stack */}
-        <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl shadow-xl p-12 mb-16 text-white">
+        <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-3xl shadow-2xl p-12 mb-16 text-white border border-gray-700/50">
           <h2 className="text-4xl font-bold mb-8 text-center">Built with Modern Tech</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="bg-blue-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold">🌐</span>
+            <div className="group">
+              <div className="bg-blue-600/20 border border-blue-500/30 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-600/30 transition-all duration-300">
+                <Globe className="w-8 h-8 text-blue-400" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Celo Blockchain</h3>
               <p className="text-gray-300 text-sm">Fast, low-cost transactions</p>
             </div>
             
-            <div>
-              <div className="bg-orange-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold">🦊</span>
+            <div className="group">
+              <div className="bg-orange-600/20 border border-orange-500/30 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-orange-600/30 transition-all duration-300">
+                <Wallet className="w-8 h-8 text-orange-400" />
               </div>
               <h3 className="text-lg font-semibold mb-2">MetaMask</h3>
               <p className="text-gray-300 text-sm">Secure wallet integration</p>
             </div>
             
-            <div>
-              <div className="bg-purple-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold">⚡</span>
+            <div className="group">
+              <div className="bg-purple-600/20 border border-purple-500/30 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-600/30 transition-all duration-300">
+                <Zap className="w-8 h-8 text-purple-400" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Viem</h3>
               <p className="text-gray-300 text-sm">Type-safe blockchain interactions</p>
             </div>
             
-            <div>
-              <div className="bg-green-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold">⚛️</span>
+            <div className="group">
+              <div className="bg-green-600/20 border border-green-500/30 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-green-600/30 transition-all duration-300">
+                <Code className="w-8 h-8 text-green-400" />
               </div>
               <h3 className="text-lg font-semibold mb-2">React + Next.js</h3>
               <p className="text-gray-300 text-sm">Modern web framework</p>
@@ -216,15 +215,17 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Link
               href="/user"
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-10 rounded-xl text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 px-10 rounded-xl text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 flex items-center justify-center space-x-2"
             >
-              🚀 Start Claiming Rewards
+              <Rocket className="w-5 h-5" />
+              <span>Start Claiming Rewards</span>
             </Link>
             <Link
               href="/admin"
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-4 px-10 rounded-xl text-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-4 px-10 rounded-xl text-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 flex items-center justify-center space-x-2"
             >
-              ⚙️ Manage System
+              <Settings className="w-5 h-5" />
+              <span>Manage System</span>
             </Link>
           </div>
         </div>
