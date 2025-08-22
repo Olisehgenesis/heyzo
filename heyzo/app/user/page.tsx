@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useHeyZo } from '../hooks/useHeyZo';
 import { formatEther, parseEther, Address } from 'viem';
 
@@ -40,13 +40,7 @@ export default function UserPage() {
   ];
 
   // Load pools and user info
-  useEffect(() => {
-    if (isConnected && address) {
-      loadPoolsAndUserInfo();
-    }
-  }, [isConnected, address]);
-
-  const loadPoolsAndUserInfo = async () => {
+  const loadPoolsAndUserInfo = useCallback(async () => {
     if (!address) return;
 
     const poolsData: Array<{ token: Address; pool: any }> = [];
@@ -56,7 +50,7 @@ export default function UserPage() {
     for (const token of commonTokens) {
       try {
         const pool = await getPool(token);
-        if (pool && pool.total > 0n) {
+        if (pool && pool.total > BigInt(0)) {
           poolsData.push({ token, pool });
         }
 
@@ -76,14 +70,27 @@ export default function UserPage() {
     setPools(poolsData);
     setUserInfos(userInfosData);
     setContractBalances(balancesData);
-  };
+  }, [address, getPool, getUserInfo, getContractBalance]);
+
+  useEffect(() => {
+    if (isConnected && address) {
+      loadPoolsAndUserInfo();
+    }
+  }, [isConnected, address, loadPoolsAndUserInfo]);
 
   const handleClaim = async () => {
     if (!selectedToken || !address) return;
 
+    // Find the user info for this token
+    const userInfo = userInfos.find(ui => ui.token === selectedToken);
+    if (!userInfo) return;
+
+    // Use the effective max send amount as the claim amount
+    const claimAmount = userInfo.info.effectiveMaxSend;
+
     setIsClaiming(true);
     try {
-      const result = await claim(selectedToken);
+      const result = await claim(selectedToken, claimAmount);
       console.log('Claim successful:', result.hash);
       // Reload data after successful claim
       await loadPoolsAndUserInfo();
@@ -121,7 +128,7 @@ export default function UserPage() {
     
     const now = BigInt(Math.floor(Date.now() / 1000));
     const lastClaim = userInfo.info.lastClaim;
-    const cooldownSeconds = cooldown || 0n;
+    const cooldownSeconds = cooldown || BigInt(0);
     
     return now >= lastClaim + cooldownSeconds;
   };
@@ -132,10 +139,10 @@ export default function UserPage() {
     
     const now = BigInt(Math.floor(Date.now() / 1000));
     const lastClaim = userInfo.info.lastClaim;
-    const cooldownSeconds = cooldown || 0n;
+    const cooldownSeconds = cooldown || BigInt(0);
     const timeLeft = lastClaim + cooldownSeconds - now;
     
-    if (timeLeft <= 0n) return 'Ready to claim';
+    if (timeLeft <= BigInt(0)) return 'Ready to claim';
     return formatTime(timeLeft);
   };
 

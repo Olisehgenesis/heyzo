@@ -5,16 +5,14 @@ import {
   createPublicClient, 
   createWalletClient, 
   http,
+  encodeFunctionData,
   type PublicClient,
   type WalletClient,
   type Address,
-  type Chain,
-  type ReadContractParameters,
-  type WriteContractParameters,
-  type SimulateContractParameters,
-  type WatchContractEventParameters
+  type Chain
 } from 'viem';
 import { celo } from 'viem/chains';
+import { getReferralTag, submitReferral } from '@divvi/referral-sdk';
 
 // Contract ABI for HeyZo contract
 const HEYZO_ABI = [
@@ -120,7 +118,10 @@ const HEYZO_ABI = [
 ] as const;
 
 // Contract address - you'll need to set this to your deployed contract address
-const HEYZO_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
+const HEYZO_CONTRACT_ADDRESS = '0x6135c199480C2198E46F6e1b63Da5bC03ad04E6E' as Address;
+
+// Your Divvi Identifier
+const DIVVI_CONSUMER_ADDRESS = '0x29D899bB6C539C59ceA731041AF5c15668e88280';
 
 export interface Pool {
   total: bigint;
@@ -161,24 +162,16 @@ export interface UseHeyZoReturn {
   getContractBalance: (token: Address) => Promise<bigint>;
   
   // Contract write functions
-  claim: (token: Address) => Promise<{ hash: string }>;
+  claim: (token: Address, amount: bigint) => Promise<{ hash: string }>;
   setPool: (token: Address, total: bigint, maxSend: bigint, isNative: boolean) => Promise<{ hash: string }>;
   adminSend: (token: Address, to: Address, amount: bigint) => Promise<{ hash: string }>;
   withdraw: (token: Address, amount: bigint) => Promise<{ hash: string }>;
   
   // Utility functions
-  readContract: <TAbi extends readonly unknown[], TFunctionName extends string>(
-    params: ReadContractParameters<TAbi, TFunctionName>
-  ) => Promise<unknown>;
-  writeContract: <TAbi extends readonly unknown[], TFunctionName extends string>(
-    params: WriteContractParameters<TAbi, TFunctionName>
-  ) => Promise<{ hash: string }>;
-  simulateContract: <TAbi extends readonly unknown[], TFunctionName extends string>(
-    params: SimulateContractParameters<TAbi, TFunctionName>
-  ) => Promise<unknown>;
-  watchContractEvent: <TAbi extends readonly unknown[], TEventName extends string>(
-    params: WatchContractEventParameters<TAbi, TEventName>
-  ) => () => void;
+  readContract: (params: any) => Promise<unknown>;
+  writeContract: (params: any) => Promise<{ hash: string }>;
+  simulateContract: (params: any) => Promise<unknown>;
+  watchContractEvent: (params: any) => () => void;
   
   // Error handling
   error: string | null;
@@ -206,7 +199,7 @@ export function useHeyZo(): UseHeyZoReturn {
       chain: celo, // Default to Celo mainnet
       transport: http(),
     });
-    setPublicClient(client);
+    setPublicClient(client as any);
   }, []);
 
   // Initialize wallet client and handle connection
@@ -214,8 +207,8 @@ export function useHeyZo(): UseHeyZoReturn {
     const initWallet = async () => {
       try {
         // Check if MetaMask is already connected
-        if (typeof window !== 'undefined' && window.ethereum) {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (typeof window !== 'undefined' && (window as any).ethereum) {
+          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
           if (accounts.length > 0) {
             const account = accounts[0] as Address;
             setAddress(account);
@@ -241,7 +234,7 @@ export function useHeyZo(): UseHeyZoReturn {
 
   // Connect to MetaMask
   const connect = useCallback(async () => {
-    if (typeof window === 'undefined' || !window.ethereum) {
+    if (typeof window === 'undefined' || !(window as any).ethereum) {
       setError('MetaMask not found. Please install MetaMask extension.');
       return;
     }
@@ -251,7 +244,7 @@ export function useHeyZo(): UseHeyZoReturn {
 
     try {
       // Request account access
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
       const account = accounts[0] as Address;
       
       // Create wallet client
@@ -290,13 +283,13 @@ export function useHeyZo(): UseHeyZoReturn {
 
   // Switch chain
   const switchChain = useCallback(async (chainId: number) => {
-    if (!window.ethereum) {
+    if (typeof window === 'undefined' || !(window as any).ethereum) {
       setError('MetaMask not found');
       return;
     }
 
     try {
-      await window.ethereum.request({
+      await (window as any).ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: `0x${chainId.toString(16)}` }],
       });
@@ -370,7 +363,7 @@ export function useHeyZo(): UseHeyZoReturn {
         address: HEYZO_CONTRACT_ADDRESS,
         abi: HEYZO_ABI,
         functionName: 'getUserInfo',
-        args: [user, token],
+        args: [token], // Only pass token as ABI expects
       });
 
       const userInfoResult = result as [bigint, bigint, bigint];
@@ -387,7 +380,7 @@ export function useHeyZo(): UseHeyZoReturn {
 
   // Get contract balance for a token
   const getContractBalance = useCallback(async (token: Address): Promise<bigint> => {
-    if (!publicClient) return 0n;
+    if (!publicClient) return BigInt(0);
 
     try {
       if (token === '0x0000000000000000000000000000000000000000') {
@@ -414,12 +407,33 @@ export function useHeyZo(): UseHeyZoReturn {
       }
     } catch (err) {
       console.error('Failed to get contract balance:', err);
-      return 0n;
+      return BigInt(0);
     }
   }, [publicClient]);
 
+  // Helper function to generate referral tag
+  const generateReferralTag = useCallback((user: Address) => {
+    return getReferralTag({
+      user,
+      consumer: DIVVI_CONSUMER_ADDRESS,
+    });
+  }, []);
+
+  // Helper function to submit referral to Divvi
+  const submitReferralToDivvi = useCallback(async (txHash: string) => {
+    try {
+      await submitReferral({
+        txHash: txHash as `0x${string}`,
+        chainId: celo.id,
+      });
+    } catch (err) {
+      console.error('Failed to submit referral to Divvi:', err);
+      // Don't throw error as this shouldn't break the main transaction
+    }
+  }, []);
+
   // Claim function
-  const claim = useCallback(async (token: Address): Promise<{ hash: string }> => {
+  const claim = useCallback(async (token: Address, amount: bigint): Promise<{ hash: string }> => {
     if (!walletClient || !address) {
       throw new Error('Wallet not connected');
     }
@@ -428,14 +442,28 @@ export function useHeyZo(): UseHeyZoReturn {
     setError(null);
 
     try {
-      const hash = await walletClient.writeContract({
-        address: HEYZO_CONTRACT_ADDRESS,
+      // Generate referral tag
+      const referralTag = generateReferralTag(address);
+      
+      // Encode the function call manually and add referral tag
+      const functionData = encodeFunctionData({
         abi: HEYZO_ABI,
         functionName: 'claim',
-        args: [token],
+        args: [token as `0x${string}`, amount],
+      });
+      
+      const dataWithReferral = functionData + referralTag;
+
+      // Send the transaction with referral tag using sendTransaction
+      const hash = await walletClient.sendTransaction({
         account: address,
+        to: HEYZO_CONTRACT_ADDRESS,
+        data: dataWithReferral as `0x${string}`,
         chain: celo,
       });
+
+      // Submit referral to Divvi
+      await submitReferralToDivvi(hash);
 
       return { hash };
     } catch (err) {
@@ -445,7 +473,7 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address]);
+  }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
 
   // Set pool function (admin only)
   const setPool = useCallback(async (
@@ -462,14 +490,28 @@ export function useHeyZo(): UseHeyZoReturn {
     setError(null);
 
     try {
-      const hash = await walletClient.writeContract({
-        address: HEYZO_CONTRACT_ADDRESS,
+      // Generate referral tag
+      const referralTag = generateReferralTag(address);
+      
+      // Encode the function call manually and add referral tag
+      const functionData = encodeFunctionData({
         abi: HEYZO_ABI,
         functionName: 'setPool',
         args: [token, total, maxSend, isNative],
+      });
+      
+      const dataWithReferral = functionData + referralTag;
+
+      // Send the transaction with referral tag using sendTransaction
+      const hash = await walletClient.sendTransaction({
         account: address,
+        to: HEYZO_CONTRACT_ADDRESS,
+        data: dataWithReferral as `0x${string}`,
         chain: celo,
       });
+
+      // Submit referral to Divvi
+      await submitReferralToDivvi(hash);
 
       return { hash };
     } catch (err) {
@@ -479,7 +521,7 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address]);
+  }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
 
   // Admin send function (admin only)
   const adminSend = useCallback(async (
@@ -495,14 +537,28 @@ export function useHeyZo(): UseHeyZoReturn {
     setError(null);
 
     try {
-      const hash = await walletClient.writeContract({
-        address: HEYZO_CONTRACT_ADDRESS,
+      // Generate referral tag
+      const referralTag = generateReferralTag(address);
+      
+      // Encode the function call manually and add referral tag
+      const functionData = encodeFunctionData({
         abi: HEYZO_ABI,
         functionName: 'adminSend',
         args: [token, to, amount],
+      });
+      
+      const dataWithReferral = functionData + referralTag;
+
+      // Send the transaction with referral tag using sendTransaction
+      const hash = await walletClient.sendTransaction({
         account: address,
+        to: HEYZO_CONTRACT_ADDRESS,
+        data: dataWithReferral as `0x${string}`,
         chain: celo,
       });
+
+      // Submit referral to Divvi
+      await submitReferralToDivvi(hash);
 
       return { hash };
     } catch (err) {
@@ -512,7 +568,7 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address]);
+  }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
 
   // Withdraw function (admin only)
   const withdraw = useCallback(async (token: Address, amount: bigint): Promise<{ hash: string }> => {
@@ -524,14 +580,28 @@ export function useHeyZo(): UseHeyZoReturn {
     setError(null);
 
     try {
-      const hash = await walletClient.writeContract({
-        address: HEYZO_CONTRACT_ADDRESS,
+      // Generate referral tag
+      const referralTag = generateReferralTag(address);
+      
+      // Encode the function call manually and add referral tag
+      const functionData = encodeFunctionData({
         abi: HEYZO_ABI,
         functionName: 'withdraw',
         args: [token, amount],
+      });
+      
+      const dataWithReferral = functionData + referralTag;
+
+      // Send the transaction with referral tag using sendTransaction
+      const hash = await walletClient.sendTransaction({
         account: address,
+        to: HEYZO_CONTRACT_ADDRESS,
+        data: dataWithReferral as `0x${string}`,
         chain: celo,
       });
+
+      // Submit referral to Divvi
+      await submitReferralToDivvi(hash);
 
       return { hash };
     } catch (err) {
@@ -541,12 +611,10 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address]);
+  }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
 
   // Generic read contract function
-  const readContract = useCallback(async <TAbi extends readonly unknown[], TFunctionName extends string>(
-    params: ReadContractParameters<TAbi, TFunctionName>
-  ) => {
+  const readContract = useCallback(async (params: any) => {
     if (!publicClient) {
       throw new Error('Public client not available');
     }
@@ -555,9 +623,7 @@ export function useHeyZo(): UseHeyZoReturn {
   }, [publicClient]);
 
   // Generic write contract function
-  const writeContract = useCallback(async <TAbi extends readonly unknown[], TFunctionName extends string>(
-    params: WriteContractParameters<TAbi, TFunctionName>
-  ): Promise<{ hash: string }> => {
+  const writeContract = useCallback(async (params: any): Promise<{ hash: string }> => {
     if (!walletClient || !address) {
       throw new Error('Wallet not connected');
     }
@@ -572,9 +638,7 @@ export function useHeyZo(): UseHeyZoReturn {
   }, [walletClient, address]);
 
   // Generic simulate contract function
-  const simulateContract = useCallback(async <TAbi extends readonly unknown[], TFunctionName extends string>(
-    params: SimulateContractParameters<TAbi, TFunctionName>
-  ) => {
+  const simulateContract = useCallback(async (params: any) => {
     if (!publicClient) {
       throw new Error('Public client not available');
     }
@@ -583,9 +647,7 @@ export function useHeyZo(): UseHeyZoReturn {
   }, [publicClient]);
 
   // Generic watch contract event function
-  const watchContractEvent = useCallback(<TAbi extends readonly unknown[], TEventName extends string>(
-    params: WatchContractEventParameters<TAbi, TEventName>
-  ) => {
+  const watchContractEvent = useCallback((params: any) => {
     if (!publicClient) {
       throw new Error('Public client not available');
     }
