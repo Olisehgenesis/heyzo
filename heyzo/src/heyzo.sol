@@ -1,12 +1,9 @@
-/**
- *Submitted for verification at celoscan.io on 2025-08-22
-*/
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
 interface IERC20 {
     function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -44,7 +41,7 @@ contract HeyZo {
     // Allow contract to receive CELO/ETH
     receive() external payable {}
 
-    // Admin sets a pool
+    // Admin sets a pool (initial setup)
     function setPool(address token, uint256 total, uint256 maxSend, bool isNative) external onlyAdmin {
         if (isNative) {
             require(address(this).balance >= total, "Not enough native balance");
@@ -52,6 +49,31 @@ contract HeyZo {
             require(IERC20(token).balanceOf(address(this)) >= total, "Not enough tokens");
         }
         pools[token] = Pool(total, maxSend, isNative);
+    }
+
+    // ✅ General top-up function (users or admin can load funds into contract)
+    function topUp(address token, uint256 amount) external payable {
+        if (token == address(0)) {
+            // Native CELO/ETH
+            require(msg.value > 0, "Must send CELO/ETH");
+        } else {
+            // ERC20
+            require(amount > 0, "Invalid token amount");
+            require(IERC20(token).transferFrom(msg.sender, address(this), amount), "Token transfer failed");
+        }
+    }
+
+    // ✅ Admin can increase a pool from contract reserves
+    function increasePool(address token, uint256 amount) external onlyAdmin {
+        Pool storage pool = pools[token];
+        require(pool.maxSend > 0, "Pool not set");
+
+        if (pool.isNative) {
+            require(address(this).balance >= pool.total + amount, "Not enough native reserves");
+        } else {
+            require(IERC20(token).balanceOf(address(this)) >= pool.total + amount, "Not enough token reserves");
+        }
+        pool.total += amount;
     }
 
     // Users claim (ERC20 or Native)

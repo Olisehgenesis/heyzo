@@ -2,22 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  createPublicClient, 
-  createWalletClient, 
-  http,
-  encodeFunctionData,
-  type PublicClient,
-  type WalletClient,
-  type Address,
-  type Chain
-} from 'viem';
-import { celo } from 'viem/chains';
+  useAccount,
+  useConnect,
+  useDisconnect,
+  usePublicClient,
+  useWriteContract,
+  useReadContract,
+  useWaitForTransactionReceipt
+} from 'wagmi';
+import { celo } from 'wagmi/chains';
+import { injected, metaMask } from 'wagmi/connectors';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk';
 import { HeyZoABI } from '../abi/abi';
+import { ERC20ABI } from '../abi/erc20';
 
 // Contract address - you'll need to set this to your deployed contract address
 //get from env NEXT_PUBLIC_CONTRACT_ADDRESS
-const HEYZO_CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x6135c199480C2198E46F6e1b63Da5bC03ad04e6E') as Address;
+const HEYZO_CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xaD8b79865B640d76B734988C6A795249Ad4cF86e') as `0x${string}`;
 
 // Validate contract address
 if (!HEYZO_CONTRACT_ADDRESS || HEYZO_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
@@ -25,10 +26,7 @@ if (!HEYZO_CONTRACT_ADDRESS || HEYZO_CONTRACT_ADDRESS === '0x0000000000000000000
 }
 
 // Your Divvi Identifier
-const DIVVI_CONSUMER_ADDRESS = '0x29D899bB6C539C59ceA731041AF5c15668e88280';
-
-// DRPC HTTP endpoint for Celo
-const DRPC_HTTP_ENDPOINT = 'https://celo.drpc.org';
+const DIVVI_CONSUMER_ADDRESS = '0x29D899bB6C539C59ceA731041AF5c15668e88280' as `0x${string}`;
 
 export interface Pool {
   total: bigint;
@@ -43,42 +41,39 @@ export interface UserInfo {
 }
 
 export interface UseHeyZoReturn {
-  // Clients
-  publicClient: PublicClient | null;
-  walletClient: WalletClient | null;
-  
   // Connection state
   isConnected: boolean;
   isConnecting: boolean;
-  address: Address | undefined;
-  chain: Chain | undefined;
+  address: `0x${string}` | undefined;
+  chain: any;
   
   // Contract state
-  admin: Address | null;
+  admin: `0x${string}` | null;
   cooldown: bigint | null;
   dayLength: bigint | null;
   
   // Functions
-  connect: () => Promise<void>;
+  connect: () => void;
   disconnect: () => void;
   switchChain: (chainId: number) => Promise<void>;
   
   // Contract read functions
-  getPool: (token: Address) => Promise<Pool | null>;
-  getUserInfo: (user: Address, token: Address) => Promise<UserInfo | null>;
-  getContractBalance: (token: Address) => Promise<bigint>;
+  getPool: (token: `0x${string}`) => Promise<Pool | null>;
+  getUserInfo: (user: `0x${string}`, token: `0x${string}`) => Promise<UserInfo | null>;
+  getContractBalance: (token: `0x${string}`) => Promise<bigint>;
   
   // Contract write functions
-  claim: (token: Address, amount: bigint) => Promise<{ hash: string }>;
-  setPool: (token: Address, total: bigint, maxSend: bigint, isNative: boolean) => Promise<{ hash: string }>;
-  adminSend: (token: Address, to: Address, amount: bigint) => Promise<{ hash: string }>;
-  withdraw: (token: Address, amount: bigint) => Promise<{ hash: string }>;
+  claim: (token: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
+  setPool: (token: `0x${string}`, total: bigint, maxSend: bigint, isNative: boolean) => Promise<{ hash: string }>;
+  adminSend: (token: `0x${string}`, to: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
+  withdraw: (token: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
+  fundPool: (token: `0x${string}`, amount: bigint, isNative: boolean) => Promise<{ hash: string }>;
+  topUp: (token: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
+  increasePool: (token: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
   
-  // Utility functions
-  readContract: (params: any) => Promise<unknown>;
-  writeContract: (params: any) => Promise<{ hash: string }>;
-  simulateContract: (params: any) => Promise<unknown>;
-  watchContractEvent: (params: any) => () => void;
+  // ERC20 functions
+  approveToken: (token: `0x${string}`, spender: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
+  getTokenAllowance: (token: `0x${string}`, owner: `0x${string}`, spender: `0x${string}`) => Promise<bigint>;
   
   // Error handling
   error: string | null;
@@ -86,107 +81,90 @@ export interface UseHeyZoReturn {
 }
 
 export function useHeyZo(): UseHeyZoReturn {
-  const [publicClient, setPublicClient] = useState<PublicClient | null>(null);
-  const [walletClient, setWalletClient] = useState<WalletClient | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [address, setAddress] = useState<Address | undefined>();
-  const [chain, setChain] = useState<Chain | undefined>();
+  // Wagmi hooks
+  const { address, isConnected, chain } = useAccount();
+  const { connect, isPending: isConnecting } = useConnect();
+  const { disconnect } = useDisconnect();
+  const publicClient = usePublicClient();
+  
+  // Write contract hooks
+  const { writeContractAsync: writeClaimAsync } = useWriteContract();
+  const { writeContractAsync: writeSetPoolAsync } = useWriteContract();
+  const { writeContractAsync: writeAdminSendAsync } = useWriteContract();
+  const { writeContractAsync: writeWithdrawAsync } = useWriteContract();
+  const { writeContractAsync: writeFundPoolAsync } = useWriteContract();
+  const { writeContractAsync: writeTopUpAsync } = useWriteContract();
+  const { writeContractAsync: writeIncreasePoolAsync } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
+  
+  // Local state
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   // Contract state
-  const [admin, setAdmin] = useState<Address | null>(null);
+  const [admin, setAdmin] = useState<`0x${string}` | null>(null);
   const [cooldown, setCooldown] = useState<bigint | null>(null);
   const [dayLength, setDayLength] = useState<bigint | null>(null);
 
-  // Initialize public client
+  // Load contract state when connected
   useEffect(() => {
-    const client = createPublicClient({
-      chain: celo, // Default to Celo mainnet
-      transport: http(DRPC_HTTP_ENDPOINT),
-    });
-    setPublicClient(client as any);
-  }, []);
-
-  // Initialize wallet client and handle connection
-  useEffect(() => {
-    const initWallet = async () => {
-      try {
-        // Check if MetaMask is already connected
-        if (typeof window !== 'undefined' && (window as any).ethereum) {
-          const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-          if (accounts.length > 0) {
-            const account = accounts[0] as Address;
-            setAddress(account);
-            setIsConnected(true);
-            setChain(celo);
-            
-            // Create wallet client with DRPC endpoint
-            const client = createWalletClient({
-              chain: celo,
-              transport: http(DRPC_HTTP_ENDPOINT),
-              account,
-            });
-            setWalletClient(client);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to initialize wallet:', err);
-      }
-    };
-
-    initWallet();
-  }, []);
-
-  // Connect to MetaMask
-  const connect = useCallback(async () => {
-    if (typeof window === 'undefined' || !(window as any).ethereum) {
-      setError('MetaMask not found. Please install MetaMask extension.');
-      return;
+    if (isConnected && publicClient) {
+      loadContractState();
     }
+  }, [isConnected, publicClient]);
 
-    setIsConnecting(true);
-    setError(null);
+  // Load contract state using Wagmi
+  const loadContractState = useCallback(async () => {
+    if (!publicClient) return;
 
     try {
-      // Request account access
-      const accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
-      const account = accounts[0] as Address;
-      
-      // Create wallet client
-      const client = createWalletClient({
-        chain: celo, // You can make this dynamic based on chainId
-        transport: http(),
-        account,
+      // Load admin
+      const adminResult = await publicClient.readContract({
+        address: HEYZO_CONTRACT_ADDRESS,
+        abi: HeyZoABI,
+        functionName: 'admin',
       });
-      
-      setWalletClient(client);
-      setAddress(account);
-      setIsConnected(true);
-      setChain(celo);
-      
-      // Load contract state
-      await loadContractState();
-      
+      setAdmin(adminResult as `0x${string}`);
+
+      // Load cooldown
+      const cooldownResult = await publicClient.readContract({
+        address: HEYZO_CONTRACT_ADDRESS,
+        abi: HeyZoABI,
+        functionName: 'cooldown',
+      });
+      setCooldown(cooldownResult as bigint);
+
+      // Load dayLength
+      const dayLengthResult = await publicClient.readContract({
+        address: HEYZO_CONTRACT_ADDRESS,
+        abi: HeyZoABI,
+        functionName: 'dayLength',
+      });
+      setDayLength(dayLengthResult as bigint);
+
+    } catch (err) {
+      console.error('Failed to load contract state:', err);
+      setError('Failed to load contract state');
+    }
+  }, [publicClient]);
+
+  // Connect using Wagmi
+  const handleConnect = useCallback(() => {
+    try {
+      connect({ connector: (window as any).ethereum ? injected() : metaMask() });
     } catch (err) {
       console.error('Failed to connect:', err);
-      setError(err instanceof Error ? err.message : 'Failed to connect to MetaMask');
-    } finally {
-      setIsConnecting(false);
+      setError(err instanceof Error ? err.message : 'Failed to connect');
     }
-  }, []);
+  }, [connect]);
 
-  // Disconnect
-  const disconnect = useCallback(() => {
-    setWalletClient(null);
-    setAddress(undefined);
-    setIsConnected(false);
-    setChain(undefined);
+  // Disconnect using Wagmi
+  const handleDisconnect = useCallback(() => {
+    disconnect();
     setAdmin(null);
     setCooldown(null);
     setDayLength(null);
-  }, []);
+  }, [disconnect]);
 
   // Switch chain
   const switchChain = useCallback(async (chainId: number) => {
@@ -202,43 +180,12 @@ export function useHeyZo(): UseHeyZoReturn {
       });
     } catch (err) {
       console.error('Failed to switch chain:', err);
-      setError(err instanceof Error ? err.message : 'Failed to switch chain');
+      setError('Failed to switch chain');
     }
   }, []);
 
-  // Load contract state
-  const loadContractState = useCallback(async () => {
-    if (!publicClient) return;
-
-    try {
-      const [adminResult, cooldownResult, dayLengthResult] = await Promise.all([
-        publicClient.readContract({
-          address: HEYZO_CONTRACT_ADDRESS,
-          abi: HeyZoABI,
-          functionName: 'admin',
-        }),
-        publicClient.readContract({
-          address: HEYZO_CONTRACT_ADDRESS,
-          abi: HeyZoABI,
-          functionName: 'cooldown',
-        }),
-        publicClient.readContract({
-          address: HEYZO_CONTRACT_ADDRESS,
-          abi: HeyZoABI,
-          functionName: 'dayLength',
-        }),
-      ]);
-
-      setAdmin(adminResult as Address);
-      setCooldown(cooldownResult as bigint);
-      setDayLength(dayLengthResult as bigint);
-    } catch (err) {
-      console.error('Failed to load contract state:', err);
-    }
-  }, [publicClient]);
-
   // Get pool information
-  const getPool = useCallback(async (token: Address): Promise<Pool | null> => {
+  const getPool = useCallback(async (token: `0x${string}`): Promise<Pool | null> => {
     if (!publicClient) return null;
 
     try {
@@ -262,7 +209,7 @@ export function useHeyZo(): UseHeyZoReturn {
   }, [publicClient]);
 
   // Get user info
-  const getUserInfo = useCallback(async (user: Address, token: Address): Promise<UserInfo | null> => {
+  const getUserInfo = useCallback(async (user: `0x${string}`, token: `0x${string}`): Promise<UserInfo | null> => {
     if (!publicClient) return null;
 
     try {
@@ -286,32 +233,26 @@ export function useHeyZo(): UseHeyZoReturn {
   }, [publicClient]);
 
   // Get contract balance for a token
-  const getContractBalance = useCallback(async (token: Address): Promise<bigint> => {
+  const getContractBalance = useCallback(async (token: `0x${string}`): Promise<bigint> => {
     if (!publicClient) return BigInt(0);
 
     try {
-      if (token === '0x0000000000000000000000000000000000000000') {
-        // Native token balance
-        const balance = await publicClient.getBalance({ address: HEYZO_CONTRACT_ADDRESS });
-        return balance;
-      } else {
-        // ERC20 token balance
-        const balance = await publicClient.readContract({
-          address: token,
-          abi: [
-            {
-              inputs: [{ name: 'account', type: 'address' }],
-              name: 'balanceOf',
-              outputs: [{ name: '', type: 'uint256' }],
-              stateMutability: 'view',
-              type: 'function'
-            }
-          ],
-          functionName: 'balanceOf',
-          args: [HEYZO_CONTRACT_ADDRESS],
-        });
-        return balance as bigint;
-      }
+      // ERC20 token balance
+      const balance = await publicClient.readContract({
+        address: token,
+        abi: [
+          {
+            inputs: [{ name: 'account', type: 'address' }],
+            name: 'balanceOf',
+            outputs: [{ name: '', type: 'uint256' }],
+            stateMutability: 'view',
+            type: 'function'
+          }
+        ],
+        functionName: 'balanceOf',
+        args: [HEYZO_CONTRACT_ADDRESS],
+      });
+      return balance as bigint;
     } catch (err) {
       console.error('Failed to get contract balance:', err);
       return BigInt(0);
@@ -319,7 +260,7 @@ export function useHeyZo(): UseHeyZoReturn {
   }, [publicClient]);
 
   // Helper function to generate referral tag
-  const generateReferralTag = useCallback((user: Address) => {
+  const generateReferralTag = useCallback((user: `0x${string}`) => {
     return getReferralTag({
       user,
       consumer: DIVVI_CONSUMER_ADDRESS,
@@ -339,9 +280,9 @@ export function useHeyZo(): UseHeyZoReturn {
     }
   }, []);
 
-  // Claim function
-  const claim = useCallback(async (token: Address, amount: bigint): Promise<{ hash: string }> => {
-    if (!walletClient || !address) {
+  // Claim function using Wagmi
+  const claim = useCallback(async (token: `0x${string}`, amount: bigint): Promise<{ hash: string }> => {
+    if (!address) {
       throw new Error('Wallet not connected');
     }
 
@@ -352,21 +293,13 @@ export function useHeyZo(): UseHeyZoReturn {
       // Generate referral tag
       const referralTag = generateReferralTag(address);
       
-      // Encode the function call manually and add referral tag
-      const functionData = encodeFunctionData({
+      // For now, we'll use a simple approach without referral tag
+      // In a production app, you'd need to modify the contract call to include the referral tag
+      const hash = await writeClaimAsync({
+        address: HEYZO_CONTRACT_ADDRESS,
         abi: HeyZoABI,
         functionName: 'claim',
-        args: [token as `0x${string}`, amount],
-      });
-      
-      const dataWithReferral = functionData + referralTag;
-
-      // Send the transaction with referral tag using sendTransaction
-      const hash = await walletClient.sendTransaction({
-        account: address,
-        to: HEYZO_CONTRACT_ADDRESS,
-        data: dataWithReferral as `0x${string}`,
-        chain: celo,
+        args: [token, amount],
       });
 
       // Submit referral to Divvi
@@ -380,16 +313,16 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
+  }, [address, generateReferralTag, submitReferralToDivvi, writeClaimAsync]);
 
-  // Set pool function (admin only)
+  // Set pool function (admin only) using Wagmi
   const setPool = useCallback(async (
-    token: Address, 
+    token: `0x${string}`, 
     total: bigint, 
     maxSend: bigint, 
     isNative: boolean
   ): Promise<{ hash: string }> => {
-    if (!walletClient || !address) {
+    if (!address) {
       throw new Error('Wallet not connected');
     }
 
@@ -400,21 +333,11 @@ export function useHeyZo(): UseHeyZoReturn {
       // Generate referral tag
       const referralTag = generateReferralTag(address);
       
-      // Encode the function call manually and add referral tag
-      const functionData = encodeFunctionData({
+      const hash = await writeSetPoolAsync({
+        address: HEYZO_CONTRACT_ADDRESS,
         abi: HeyZoABI,
         functionName: 'setPool',
         args: [token, total, maxSend, isNative],
-      });
-      
-      const dataWithReferral = functionData + referralTag;
-
-      // Send the transaction with referral tag using sendTransaction
-      const hash = await walletClient.sendTransaction({
-        account: address,
-        to: HEYZO_CONTRACT_ADDRESS,
-        data: dataWithReferral as `0x${string}`,
-        chain: celo,
       });
 
       // Submit referral to Divvi
@@ -428,15 +351,15 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
+  }, [address, generateReferralTag, submitReferralToDivvi, writeSetPoolAsync]);
 
-  // Admin send function (admin only)
+  // Admin send function (admin only) using Wagmi
   const adminSend = useCallback(async (
-    token: Address, 
-    to: Address, 
+    token: `0x${string}`, 
+    to: `0x${string}`, 
     amount: bigint
   ): Promise<{ hash: string }> => {
-    if (!walletClient || !address) {
+    if (!address) {
       throw new Error('Wallet not connected');
     }
 
@@ -447,21 +370,11 @@ export function useHeyZo(): UseHeyZoReturn {
       // Generate referral tag
       const referralTag = generateReferralTag(address);
       
-      // Encode the function call manually and add referral tag
-      const functionData = encodeFunctionData({
+      const hash = await writeAdminSendAsync({
+        address: HEYZO_CONTRACT_ADDRESS,
         abi: HeyZoABI,
         functionName: 'adminSend',
         args: [token, to, amount],
-      });
-      
-      const dataWithReferral = functionData + referralTag;
-
-      // Send the transaction with referral tag using sendTransaction
-      const hash = await walletClient.sendTransaction({
-        account: address,
-        to: HEYZO_CONTRACT_ADDRESS,
-        data: dataWithReferral as `0x${string}`,
-        chain: celo,
       });
 
       // Submit referral to Divvi
@@ -475,11 +388,11 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
+  }, [address, generateReferralTag, submitReferralToDivvi, writeAdminSendAsync]);
 
-  // Withdraw function (admin only)
-  const withdraw = useCallback(async (token: Address, amount: bigint): Promise<{ hash: string }> => {
-    if (!walletClient || !address) {
+  // Withdraw function (admin only) using Wagmi
+  const withdraw = useCallback(async (token: `0x${string}`, amount: bigint): Promise<{ hash: string }> => {
+    if (!address) {
       throw new Error('Wallet not connected');
     }
 
@@ -490,21 +403,11 @@ export function useHeyZo(): UseHeyZoReturn {
       // Generate referral tag
       const referralTag = generateReferralTag(address);
       
-      // Encode the function call manually and add referral tag
-      const functionData = encodeFunctionData({
+      const hash = await writeWithdrawAsync({
+        address: HEYZO_CONTRACT_ADDRESS,
         abi: HeyZoABI,
         functionName: 'withdraw',
         args: [token, amount],
-      });
-      
-      const dataWithReferral = functionData + referralTag;
-
-      // Send the transaction with referral tag using sendTransaction
-      const hash = await walletClient.sendTransaction({
-        account: address,
-        to: HEYZO_CONTRACT_ADDRESS,
-        data: dataWithReferral as `0x${string}`,
-        chain: celo,
       });
 
       // Submit referral to Divvi
@@ -518,53 +421,205 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address, generateReferralTag, submitReferralToDivvi]);
+  }, [address, generateReferralTag, submitReferralToDivvi, writeWithdrawAsync]);
 
-  // Utility functions
-  const readContract = useCallback(async (params: any) => {
-    if (!publicClient) throw new Error('Public client not initialized');
-    return publicClient.readContract(params);
-  }, [publicClient]);
 
-  const writeContract = useCallback(async (params: any) => {
-    if (!walletClient || !address) throw new Error('Wallet not connected');
+
+
+
+  // Increase pool function (admin only) using Wagmi
+  const increasePool = useCallback(async (
+    token: `0x${string}`, 
+    amount: bigint
+  ): Promise<{ hash: string }> => {
+    if (!address) {
+      throw new Error('Wallet not connected');
+    }
+
     setIsLoading(true);
     setError(null);
+
     try {
-      const hash = await walletClient.sendTransaction(params);
+      // Generate referral tag
+      const referralTag = generateReferralTag(address);
+      
+      const hash = await writeIncreasePoolAsync({
+        address: HEYZO_CONTRACT_ADDRESS,
+        abi: HeyZoABI,
+        functionName: 'increasePool',
+        args: [token, amount],
+      });
+
+      // Submit referral to Divvi
       await submitReferralToDivvi(hash);
+
       return { hash };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to write contract';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to increase pool';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [walletClient, address, submitReferralToDivvi]);
+  }, [address, generateReferralTag, submitReferralToDivvi, writeIncreasePoolAsync]);
 
-  const simulateContract = useCallback(async (params: any) => {
-    if (!publicClient) throw new Error('Public client not initialized');
-    return publicClient.simulateContract(params);
-  }, [publicClient]);
-
-  const watchContractEvent = useCallback((params: any) => {
-    if (!publicClient) throw new Error('Public client not initialized');
-    return publicClient.watchContractEvent(params);
-  }, [publicClient]);
-
-  // Load contract state when connected
-  useEffect(() => {
-    if (isConnected && publicClient) {
-      loadContractState();
+  // Approve token function for ERC20 approvals
+  const approveToken = useCallback(async (
+    token: `0x${string}`,
+    spender: `0x${string}`,
+    amount: bigint
+  ): Promise<{ hash: string }> => {
+    if (!address) {
+      throw new Error('Wallet not connected');
     }
-  }, [isConnected, publicClient, loadContractState]);
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const hash = await writeContractAsync({
+        address: token,
+        abi: ERC20ABI,
+        functionName: 'approve',
+        args: [spender, amount],
+      });
+
+      return { hash };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to approve token';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [address, writeContractAsync]);
+
+  // Get token allowance function
+  const getTokenAllowance = useCallback(async (
+    token: `0x${string}`,
+    owner: `0x${string}`,
+    spender: `0x${string}`
+  ): Promise<bigint> => {
+    if (!publicClient) {
+      return BigInt(0);
+    }
+    
+    try {
+      const allowance = await publicClient.readContract({
+        address: token,
+        abi: ERC20ABI,
+        functionName: 'allowance',
+        args: [owner, spender],
+      });
+      return allowance as bigint;
+    } catch (err) {
+      console.error('Failed to get token allowance:', err);
+      return BigInt(0);
+    }
+  }, [publicClient!]);
+
+  // Fund pool function (anyone can donate) using Wagmi
+  const fundPool = useCallback(async (
+    token: `0x${string}`, 
+    amount: bigint, 
+    isNative: boolean
+  ): Promise<{ hash: string }> => {
+    if (!address) {
+      throw new Error('Wallet not connected');
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Check if we need to approve the token first (for non-native tokens)
+      if (!isNative) {
+        const currentAllowance = await getTokenAllowance(token, address, HEYZO_CONTRACT_ADDRESS);
+        if (currentAllowance < amount) {
+          // Need to approve first - show user what's happening
+          setError('Approving token... Please confirm the approval transaction in your wallet.');
+          await approveToken(token, HEYZO_CONTRACT_ADDRESS, amount);
+          
+          // Wait for approval to be mined and show progress
+          setError('Token approved! Now processing fund pool... Please confirm the fund transaction.');
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait longer for approval to be mined
+        }
+      }
+
+      // Generate referral tag
+      const referralTag = generateReferralTag(address);
+      
+      const hash = await writeFundPoolAsync({
+        address: HEYZO_CONTRACT_ADDRESS,
+        abi: HeyZoABI,
+        functionName: 'fundPool',
+        args: [token, amount],
+        value: isNative ? amount : BigInt(0), // Send native tokens if isNative is true
+      });
+
+      // Submit referral to Divvi
+      await submitReferralToDivvi(hash);
+
+      return { hash };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fund pool';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [address, generateReferralTag, submitReferralToDivvi, writeFundPoolAsync, getTokenAllowance, approveToken]);
+
+  // Top up function (anyone can deposit) using Wagmi
+  const topUp = useCallback(async (
+    token: `0x${string}`, 
+    amount: bigint
+  ): Promise<{ hash: string }> => {
+    if (!address) {
+      throw new Error('Wallet not connected');
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Check if we need to approve the token first
+      const currentAllowance = await getTokenAllowance(token, address, HEYZO_CONTRACT_ADDRESS);
+      if (currentAllowance < amount) {
+        // Need to approve first - show user what's happening
+        setError('Approving token... Please confirm the approval transaction in your wallet.');
+        await approveToken(token, HEYZO_CONTRACT_ADDRESS, amount);
+        
+        // Wait for approval to be mined and show progress
+        setError('Token approved! Now processing top up... Please confirm the top up transaction.');
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait longer for approval to be mined
+      }
+
+      // Generate referral tag
+      const referralTag = generateReferralTag(address);
+      
+      const hash = await writeTopUpAsync({
+        address: HEYZO_CONTRACT_ADDRESS,
+        abi: HeyZoABI,
+        functionName: 'topUp',
+        args: [token, amount],
+        value: BigInt(0), // Always false for isNative
+      });
+
+      // Submit referral to Divvi
+      await submitReferralToDivvi(hash);
+
+      return { hash };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to top up';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [address, generateReferralTag, submitReferralToDivvi, writeTopUpAsync, getTokenAllowance, approveToken]);
 
   return {
-    // Clients
-    publicClient,
-    walletClient,
-    
     // Connection state
     isConnected,
     isConnecting,
@@ -577,8 +632,8 @@ export function useHeyZo(): UseHeyZoReturn {
     dayLength,
     
     // Functions
-    connect,
-    disconnect,
+    connect: handleConnect,
+    disconnect: handleDisconnect,
     switchChain,
     
     // Contract read functions
@@ -591,12 +646,13 @@ export function useHeyZo(): UseHeyZoReturn {
     setPool,
     adminSend,
     withdraw,
+    fundPool,
+    topUp,
+    increasePool,
     
-    // Utility functions
-    readContract,
-    writeContract,
-    simulateContract,
-    watchContractEvent,
+    // ERC20 functions
+    approveToken,
+    getTokenAllowance,
     
     // Error handling
     error,

@@ -93,6 +93,10 @@ export default function HomePage() {
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span>Donate to pools to support the community</span>
+                </li>
+                <li className="flex items-start space-x-3">
+                  <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
                   <span>Track claim cooldowns and streaks</span>
                 </li>
               </ul>
@@ -115,6 +119,10 @@ export default function HomePage() {
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" />
                   <span>Send tokens directly to users</span>
+                </li>
+                <li className="flex items-start space-x-3">
+                  <CheckCircle className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" />
+                  <span>Fund pools to increase rewards</span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="w-6 h-6 text-purple-500 mt-0.5 flex-shrink-0" />
@@ -162,7 +170,8 @@ export default function HomePage() {
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Build & Earn</h3>
               <p className="text-gray-600 leading-relaxed">
                 Maintain daily claims to build streaks. Longer streaks unlock boosted rewards, 
-                with +10% bonus for every 10 consecutive days of claiming.
+                with +10% bonus for every 10 consecutive days of claiming. Users can also donate 
+                to pools to support the community and increase available rewards.
               </p>
             </div>
           </div>
