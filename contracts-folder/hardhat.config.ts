@@ -52,6 +52,16 @@ const config: HardhatUserConfig = {
       accounts: configVariable("CELO_TESTNET_PRIVATE_KEY") ? [configVariable("CELO_TESTNET_PRIVATE_KEY")] : [],
       chainId: 44787,
     },
+    baseSepolia: {
+      type: "http",
+      url: configVariable("BASE_SEPOLIA_RPC_URL"),
+      accounts: [configVariable("BASE_SEPOLIA_PRIVATE_KEY")],
+    },
+    base: {
+      type: "http",
+      url: configVariable("BASE_RPC_URL"),
+      accounts: [configVariable("BASE_PRIVATE_KEY")],
+    },
     sepolia: {
       type: "http",
       chainType: "l1",

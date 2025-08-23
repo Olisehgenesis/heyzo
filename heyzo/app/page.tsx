@@ -1,3 +1,5 @@
+"use client";
+
 import Navigation from './components/Navigation';
 import Link from 'next/link';
 import { 
@@ -14,8 +16,16 @@ import {
   Calendar,
   Star
 } from 'lucide-react';
+import { useEffect } from 'react';
+import { useHeyZo } from './hooks/useHeyZo';
 
 export default function HomePage() {
+  //ensure base network
+  const { ensureBaseNetwork } = useHeyZo();
+  useEffect(() => {
+    ensureBaseNetwork();
+  }, [ensureBaseNetwork]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Navigation />
@@ -26,13 +36,11 @@ export default function HomePage() {
           <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl mb-8 shadow-2xl">
             <Zap className="w-12 h-12 text-white" />
           </div>
-          <h1 className="text-6xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            HeyZo
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 text-center">
+            HeyZo Rewards
           </h1>
-          <p className="text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-            A revolutionary decentralized reward system built on the Celo blockchain. 
-            Users earn tokens daily, build streaks, and get boosted rewards while admins 
-            manage pools and distributions seamlessly.
+          <p className="text-xl text-gray-300 mb-8 text-center max-w-2xl">
+            A revolutionary decentralized reward system built on the Base blockchain.
           </p>
         </div>
 
@@ -77,7 +85,7 @@ export default function HomePage() {
               <ul className="space-y-4 text-gray-600">
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span>Connect MetaMask wallet to Celo network</span>
+                  <span>Connect MetaMask wallet to Base network</span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
@@ -147,7 +155,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Connect & Explore</h3>
               <p className="text-gray-600 leading-relaxed">
-                Connect your MetaMask wallet to the Celo network and explore available token pools. 
+                Connect your MetaMask wallet to the Base network and explore available token pools. 
                 View pool balances, claim limits, and your current streak status.
               </p>
             </div>
@@ -185,7 +193,7 @@ export default function HomePage() {
               <div className="bg-blue-600/20 border border-blue-500/30 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-600/30 transition-all duration-300">
                 <Globe className="w-8 h-8 text-blue-400" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Celo Blockchain</h3>
+                              <h3 className="text-lg font-semibold mb-2">Base Blockchain</h3>
               <p className="text-gray-300 text-sm">Fast, low-cost transactions</p>
             </div>
             

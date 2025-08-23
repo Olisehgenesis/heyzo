@@ -11,7 +11,7 @@ import {
   useWaitForTransactionReceipt,
   useChainId
 } from 'wagmi';
-import { celo } from 'wagmi/chains';
+import {  base } from 'wagmi/chains';
 import { injected, metaMask } from 'wagmi/connectors';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk';
 import { HeyZoABI } from '../abi/abi';
@@ -57,7 +57,7 @@ export interface UseHeyZoReturn {
   connect: () => void;
   disconnect: () => void;
   switchChain: (chainId: number) => Promise<void>;
-  ensureCeloNetwork: () => Promise<void>;
+  ensureBaseNetwork: () => Promise<void>;
   
   // Contract read functions
   getPool: (token: `0x${string}`) => Promise<Pool | null>;
@@ -190,11 +190,11 @@ export function useHeyZo(): UseHeyZoReturn {
     }
   }, []);
 
-  // Helper function to ensure we're on Celo network
-  const ensureCeloNetwork = useCallback(async () => {
-    if (chainId !== celo.id) {
-      console.log(`Switching to Celo network. Current: ${chainId}, Target: ${celo.id}`);
-      await switchChain(celo.id);
+  // Helper function to ensure we're on Base network
+  const ensureBaseNetwork = useCallback(async () => {
+    if (chainId !== base.id) {
+      console.log(`Switching to Base network. Current: ${chainId}, Target: ${base.id}`);
+      await switchChain(base.id);
       // Wait a bit for the switch to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
@@ -288,7 +288,7 @@ export function useHeyZo(): UseHeyZoReturn {
     try {
       await submitReferral({
         txHash: txHash as `0x${string}`,
-        chainId: chainId || celo.id,
+        chainId: chainId || base.id,
       });
     } catch (err) {
       console.error('Failed to submit referral to Divvi:', err);
@@ -346,8 +346,8 @@ export function useHeyZo(): UseHeyZoReturn {
       throw new Error('Public client not available');
     }
 
-    // Ensure we're on Celo network
-    await ensureCeloNetwork();
+    // Ensure we're on Base network
+    await ensureBaseNetwork();
 
     setIsLoading(true);
     setError(null);
@@ -379,7 +379,7 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [address, generateReferralTag, submitReferralToDivvi, writeSetPoolAsync, publicClient, ensureCeloNetwork]);
+  }, [address, generateReferralTag, submitReferralToDivvi, writeSetPoolAsync, publicClient, ensureBaseNetwork]);
 
   // Admin send function (admin only) using Wagmi
   const adminSend = useCallback(async (
@@ -700,7 +700,7 @@ export function useHeyZo(): UseHeyZoReturn {
     connect: handleConnect,
     disconnect: handleDisconnect,
     switchChain,
-    ensureCeloNetwork,
+    ensureBaseNetwork,
     
     // Contract read functions
     getPool,

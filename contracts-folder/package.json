@@ -7,6 +7,7 @@
     "compile": "hardhat compile",
     "deploy": "hardhat run --network hardhat scripts/deploy.ts",
     "deploy:celo": "hardhat run --network celo scripts/deploy.ts",
+    "deploy:base": "hardhat run --network base scripts/deploy.ts",
     "deploy:celo-testnet": "hardhat run --network celoTestnet scripts/deploy.ts",
     "deploy:sepolia": "hardhat run --network sepolia scripts/deploy.ts",
     "verify:celo": "node scripts/verify-celo.js",

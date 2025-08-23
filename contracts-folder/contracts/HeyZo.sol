@@ -15,7 +15,7 @@ contract HeyZo {
     struct Pool {
         uint256 total;     // total allocated for distribution
         uint256 maxSend;   // base max per claim
-        bool isNative;     // true if this pool is for CELO/ETH
+        bool isNative;     // true if this pool is for ETH
     }
 
     struct UserInfo {
@@ -24,7 +24,7 @@ contract HeyZo {
         uint256 streak;
     }
 
-    // token => pool (use address(0) for CELO/ETH native pool)
+    // token => pool (use address(0) for ETH native pool)
     mapping(address => Pool) public pools;
     // user => token => info
     mapping(address => mapping(address => UserInfo)) public userInfo;
@@ -38,7 +38,7 @@ contract HeyZo {
         admin = msg.sender;
     }
 
-    // Allow contract to receive CELO/ETH
+    // Allow contract to receive ETH
     receive() external payable {}
 
     // Admin sets a pool (initial setup)
@@ -54,8 +54,8 @@ contract HeyZo {
     // ✅ General top-up function (users or admin can load funds into contract)
     function topUp(address token, uint256 amount) external payable {
         if (token == address(0)) {
-            // Native CELO/ETH
-            require(msg.value > 0, "Must send CELO/ETH");
+            // Native ETH
+            require(msg.value > 0, "Must send ETH");
         } else {
             // ERC20
             require(amount > 0, "Invalid token amount");

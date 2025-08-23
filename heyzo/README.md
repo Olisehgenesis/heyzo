@@ -1,6 +1,6 @@
 # HeyZo - Decentralized Reward System
 
-A revolutionary decentralized reward system built on the Celo blockchain. Users earn tokens daily, build streaks, and get boosted rewards while admins manage pools and distributions seamlessly.
+A revolutionary decentralized reward system built on the Base blockchain. Users earn tokens daily, build streaks, and get boosted rewards while admins manage pools and distributions seamlessly.
 
 ## 🌟 Features
 
@@ -10,7 +10,7 @@ A revolutionary decentralized reward system built on the Celo blockchain. Users 
 - **Real-time Pool Information**: View current pool balances and limits
 - **Community Support**: Donate to pools to support the community
 - **Contract Top-ups**: Add tokens to contract reserves
-- **Wallet Integration**: Connect MetaMask wallet to Celo network
+- **Wallet Integration**: Connect MetaMask wallet to Base network
 - **Claim Cooldowns**: Track claim timers and streaks
 
 ### For Admins
@@ -29,12 +29,12 @@ A revolutionary decentralized reward system built on the Celo blockchain. Users 
 - `claim(address token)`: User claim function with streak tracking
 - `adminSend(address token, address to, uint256 amount)`: Admin direct distribution
 - `withdraw(address token, uint256 amount)`: Admin withdrawal function
-- `getUserInfo(address user, address token)`: Get user streak and claim info
+- **Error Handling**: Graceful error handling and user feedback
 
 ### Supported Tokens
-- **CELO** (Native): `0x471EcE3750Da237f93B8E339c536989b8978a438`
-- **cUSD**: `0x765DE816845861e75A25fCA122bb6898B8B1282a`
-- **cEUR**: `0xD8763CBa276a3738E6DE85b4b3b5Cd2dB23fE6b6`
+- **ETH** (Native): `0x0000000000000000000000000000000000000000`
+- **USDC**: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
+- **Snarkel**: `0xd2c5d1cf9727da34bcb6465890e4fb5c413bbd40`
 
 ## 🚀 Getting Started
 
@@ -42,7 +42,7 @@ A revolutionary decentralized reward system built on the Celo blockchain. Users 
 - Node.js 18+ 
 - pnpm or npm
 - MetaMask wallet
-- Celo network configured in MetaMask
+- Base network configured in MetaMask
 
 ### Installation
 
@@ -67,7 +67,7 @@ A revolutionary decentralized reward system built on the Celo blockchain. Users 
    Configure the following variables:
    ```env
    NEXT_PUBLIC_CONTRACT_ADDRESS=your_deployed_contract_address
-   NEXT_PUBLIC_RPC_URL=https://forno.celo.org
+   NEXT_PUBLIC_RPC_URL=https://base.drpc.org
    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
    ```
 
@@ -84,7 +84,7 @@ pnpm dev
 ## 🔧 Configuration
 
 ### Contract Deployment
-1. Deploy the HeyZo smart contract to Celo network
+1. Deploy the HeyZo smart contract to Base network
 2. Set the contract address in your environment variables
 3. Configure initial pools using the admin panel
 
@@ -98,7 +98,7 @@ pnpm dev
 ## 📱 Usage
 
 ### User Dashboard (`/user`)
-- **Connect Wallet**: Link your MetaMask wallet to Celo network
+- **Connect Wallet**: Link your MetaMask wallet to Base network
 - **View Pools**: See available token pools and balances
 - **Claim Rewards**: Claim daily tokens from pools
 - **Track Streaks**: Monitor your claim streaks and bonuses
@@ -174,18 +174,18 @@ The app is built with Next.js and can be deployed to any platform that supports 
 
 ## 🌐 Network Configuration
 
-### Celo Network Setup
-1. **Network Name**: Celo
-2. **RPC URL**: `https://forno.celo.org`
-3. **Chain ID**: `42220`
-4. **Currency Symbol**: `CELO`
-5. **Block Explorer**: `https://explorer.celo.org`
+### Base Network Setup
+1. **Network Name**: Base
+2. **RPC URL**: `https://base.drpc.org`
+3. **Chain ID**: `8453`
+4. **Currency Symbol**: `ETH`
+5. **Block Explorer**: `https://basescan.org`
 
 ### MetaMask Configuration
 1. Open MetaMask
 2. Go to Settings > Networks
-3. Add the Celo network with the above parameters
-4. Switch to Celo network
+3. Add the Base network with the above parameters
+4. Switch to Base network
 
 ## 🤝 Contributing
 
@@ -202,7 +202,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🆘 Support
 
 ### Common Issues
-- **Wallet Connection**: Ensure MetaMask is connected to Celo network
+- **Wallet Connection**: Ensure MetaMask is connected to Base network
 - **Transaction Failures**: Check gas fees and network congestion
 - **Pool Issues**: Verify pool configuration and token balances
 

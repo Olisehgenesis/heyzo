@@ -64,11 +64,11 @@ export default function UserPage() {
     amount: ''
   });
 
-  // Common token addresses (you can add more)
+  // Common token addresses for Base network
   const commonTokens: `0x${string}`[] = [
-    '0x471EcE3750Da237f93B8E339c536989b8978a438', // CELO token
-    '0x765DE816845861e75A25fCA122bb6898B8B1282a', // cUSD
-    '0xD8763CBa276a3738E6DE85b4b3b5Cd2dB23fE6b6', // cEUR
+    '0x0000000000000000000000000000000000000000', // ETH (native token)
+    '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+    '0xe75a890ad702b14b7935bc1ba81067f2b93f35d0', // Snarkel token
   ];
 
   // Load pools and user info
@@ -199,9 +199,9 @@ export default function UserPage() {
   };
 
   const formatTokenName = (address: `0x${string}`) => {
-    if (address === '0x471EcE3750Da237f93B8E339c536989b8978a438') return 'CELO';
-    if (address === '0x765DE816845861e75A25fCA122bb6898B8B1282a') return 'cUSD';
-    if (address === '0xD8763CBa276a3738E6DE85b4b3b5Cd2dB23fE6b6') return 'cEUR';
+    if (address === '0x0000000000000000000000000000000000000000') return 'ETH';
+    if (address === '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') return 'USDC';
+    if (address === '0xd2c5d1cf9727da34bcb6465890e4fb5c413bbd40') return 'Snarkel';
     return formatAddress(address);
   };
 
@@ -619,7 +619,7 @@ export default function UserPage() {
                     className="w-4 h-4 text-blue-600 bg-white/10 border-white/20 rounded focus:ring-blue-500 focus:ring-2"
                   />
                   <label htmlFor="isNative" className="ml-2 text-sm text-white/80">
-                    Native Token (CELO/ETH)
+                    Native Token (ETH)
                   </label>
                 </div>
                 

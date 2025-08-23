@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { celo } from 'wagmi/chains';
+import { base } from 'wagmi/chains';
 import { injected, metaMask, walletConnect } from 'wagmi/connectors';
 
 // Create a client
@@ -10,7 +10,7 @@ const queryClient = new QueryClient();
 
 // Configure chains & providers
 const config = createConfig({
-  chains: [celo],
+  chains: [base],
   connectors: [
     injected(),
     metaMask(),
@@ -19,7 +19,7 @@ const config = createConfig({
     }),
   ],
   transports: {
-    [celo.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://forno.celo.org'),
+    [base.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://base.drpc.org'),
   },
 });
 

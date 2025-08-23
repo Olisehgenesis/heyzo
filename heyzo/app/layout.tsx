@@ -14,26 +14,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HeyZo - Decentralized Reward System",
-  description: "A revolutionary decentralized reward system built on the Celo blockchain. Users earn tokens daily, build streaks, and get boosted rewards while admins manage pools and distributions seamlessly.",
-  keywords: ["blockchain", "rewards", "celo", "defi", "tokens", "streaks", "decentralized"],
-  authors: [{ name: "HeyZo Team" }],
-  creator: "HeyZo",
-  publisher: "HeyZo",
+  title: 'HeyZo - Decentralized Reward System',
+  description: "A revolutionary decentralized reward system built on the Base blockchain. Users earn tokens daily, build streaks, and get boosted rewards while admins manage pools and distributions seamlessly.",
+  keywords: ["blockchain", "rewards", "base", "defi", "tokens", "streaks", "decentralized"],
+  authors: [{ name: 'HeyZo Team' }],
+  creator: 'HeyZo Team',
+  publisher: 'HeyZo',
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://heyzo.app'),
+  metadataBase: new URL('https://heyzo.vercel.app'),
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
-    title: "HeyZo - Decentralized Reward System",
-    description: "A revolutionary decentralized reward system built on the Celo blockchain. Users earn tokens daily, build streaks, and get boosted rewards while admins manage pools and distributions seamlessly.",
-    url: 'https://heyzo.app',
+    title: 'HeyZo - Decentralized Reward System',
+    description: "A revolutionary decentralized reward system built on the Base blockchain. Users earn tokens daily, build streaks, and get boosted rewards while admins manage pools and distributions seamlessly.",
+    url: 'https://heyzo.vercel.app',
     siteName: 'HeyZo',
     images: [
       {
-        url: '/og-image.png',
+        url: '/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'HeyZo - Decentralized Reward System',
@@ -44,9 +47,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "HeyZo - Decentralized Reward System",
-    description: "A revolutionary decentralized reward system built on the Celo blockchain. Users earn tokens daily, build streaks, and get boosted rewards while admins manage pools and distributions seamlessly.",
-    images: ['/og-image.png'],
+    title: 'HeyZo - Decentralized Reward System',
+    description: "A revolutionary decentralized reward system built on the Base blockchain. Users earn tokens daily, build streaks, and get boosted rewards while admins manage pools and distributions seamlessly.",
+    images: ['/og-image.jpg'],
   },
   robots: {
     index: true,
@@ -58,9 +61,6 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },
-  verification: {
-    google: 'your-google-verification-code',
   },
 };
 
