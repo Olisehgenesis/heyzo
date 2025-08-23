@@ -8,7 +8,8 @@ import {
   usePublicClient,
   useWriteContract,
   useReadContract,
-  useWaitForTransactionReceipt
+  useWaitForTransactionReceipt,
+  useChainId
 } from 'wagmi';
 import { celo } from 'wagmi/chains';
 import { injected, metaMask } from 'wagmi/connectors';
@@ -86,6 +87,7 @@ export function useHeyZo(): UseHeyZoReturn {
   const { connect, isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const publicClient = usePublicClient();
+  const chainId = useChainId();
   
   // Write contract hooks
   const { writeContractAsync: writeClaimAsync } = useWriteContract();
@@ -181,8 +183,19 @@ export function useHeyZo(): UseHeyZoReturn {
     } catch (err) {
       console.error('Failed to switch chain:', err);
       setError('Failed to switch chain');
+      throw new Error(`Failed to switch to chain ${chainId}: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }, []);
+
+  // Helper function to ensure we're on Celo network
+  const ensureCeloNetwork = useCallback(async () => {
+    if (chainId !== celo.id) {
+      console.log(`Switching to Celo network. Current: ${chainId}, Target: ${celo.id}`);
+      await switchChain(celo.id);
+      // Wait a bit for the switch to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }, [chainId, switchChain]);
 
   // Get pool information
   const getPool = useCallback(async (token: `0x${string}`): Promise<Pool | null> => {
@@ -272,13 +285,13 @@ export function useHeyZo(): UseHeyZoReturn {
     try {
       await submitReferral({
         txHash: txHash as `0x${string}`,
-        chainId: celo.id,
+        chainId: chainId || celo.id,
       });
     } catch (err) {
       console.error('Failed to submit referral to Divvi:', err);
       // Don't throw error as this shouldn't break the main transaction
     }
-  }, []);
+  }, [chainId]);
 
   // Claim function using Wagmi
   const claim = useCallback(async (token: `0x${string}`, amount: bigint): Promise<{ hash: string }> => {
@@ -326,12 +339,23 @@ export function useHeyZo(): UseHeyZoReturn {
       throw new Error('Wallet not connected');
     }
 
+    if (!publicClient) {
+      throw new Error('Public client not available');
+    }
+
+    // Check if connected to Celo network
+    if (chainId !== celo.id) {
+      throw new Error(`Please connect to Celo network. Current chain ID: ${chainId}, Expected: ${celo.id}`);
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
       // Generate referral tag
       const referralTag = generateReferralTag(address);
+      
+      console.log('Setting pool with args:', { token, total: total.toString(), maxSend: maxSend.toString(), isNative });
       
       const hash = await writeSetPoolAsync({
         address: HEYZO_CONTRACT_ADDRESS,
@@ -340,18 +364,21 @@ export function useHeyZo(): UseHeyZoReturn {
         args: [token, total, maxSend, isNative],
       });
 
+      console.log('Pool set successfully, hash:', hash);
+
       // Submit referral to Divvi
       await submitReferralToDivvi(hash);
 
       return { hash };
     } catch (err) {
+      console.error('setPool error details:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to set pool';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [address, generateReferralTag, submitReferralToDivvi, writeSetPoolAsync]);
+  }, [address, generateReferralTag, submitReferralToDivvi, writeSetPoolAsync, publicClient]);
 
   // Admin send function (admin only) using Wagmi
   const adminSend = useCallback(async (

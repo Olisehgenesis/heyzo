@@ -4,13 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { celo } from 'wagmi/chains';
 import { injected, metaMask, walletConnect } from 'wagmi/connectors';
-import { createConfig as createWagmiConfig } from 'wagmi';
 
 // Create a client
 const queryClient = new QueryClient();
 
 // Configure chains & providers
-const config = createWagmiConfig({
+const config = createConfig({
   chains: [celo],
   connectors: [
     injected(),
