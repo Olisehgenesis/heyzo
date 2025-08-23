@@ -75,12 +75,14 @@ export default function AdminPage() {
   const [sendForm, setSendForm] = useState({
     token: '',
     to: '',
-    amount: ''
+    amount: '',
+    isNative: false
   });
   
   const [withdrawForm, setWithdrawForm] = useState({
     token: '',
-    amount: ''
+    amount: '',
+    isNative: false
   });
 
   const [fundPoolForm, setFundPoolForm] = useState({
@@ -91,12 +93,14 @@ export default function AdminPage() {
 
   const [topUpForm, setTopUpForm] = useState({
     token: '',
-    amount: ''
+    amount: '',
+    isNative: false
   });
 
   const [increasePoolForm, setIncreasePoolForm] = useState({
     token: '',
-    amount: ''
+    amount: '',
+    isNative: false
   });
 
   const [batchSendForm, setBatchSendForm] = useState({
@@ -174,7 +178,7 @@ export default function AdminPage() {
         poolForm.token as `0x${string}`,
         total,
         maxSend,
-        false // isNative is always false since we don't support native tokens
+        poolForm.token === '0x0000000000000000000000000000000000000000' // isNative true for ETH, false for tokens
       );
       
       setTransactionStatus({
@@ -214,7 +218,7 @@ export default function AdminPage() {
       
       setTransactionStatus({ type: null, message: '' });
       const result = await adminSend(
-        sendForm.token as `0x${string}`,
+        sendForm.isNative ? '0x0000000000000000000000000000000000000000' as `0x${string}` : sendForm.token as `0x${string}`,
         sendForm.to as `0x${string}`,
         amount
       );
@@ -226,7 +230,7 @@ export default function AdminPage() {
       });
       
       // Reset form and reload data
-      setSendForm({ token: '', to: '', amount: '' });
+      setSendForm({ token: '', to: '', amount: '', isNative: false });
       await loadPoolsAndBalances();
     } catch (err) {
       console.error('Failed to send tokens:', err);
@@ -246,7 +250,7 @@ export default function AdminPage() {
       
       setTransactionStatus({ type: null, message: '' });
       const result = await withdraw(
-        withdrawForm.token as `0x${string}`,
+        withdrawForm.isNative ? '0x0000000000000000000000000000000000000000' as `0x${string}` : withdrawForm.token as `0x${string}`,
         amount
       );
       
@@ -257,7 +261,7 @@ export default function AdminPage() {
       });
       
       // Reset form and reload data
-      setWithdrawForm({ token: '', amount: '' });
+      setWithdrawForm({ token: '', amount: '', isNative: false });
       await loadPoolsAndBalances();
     } catch (err) {
       console.error('Failed to withdraw:', err);
@@ -309,7 +313,7 @@ export default function AdminPage() {
       
       setTransactionStatus({ type: null, message: '' });
       const result = await topUp(
-        topUpForm.token as `0x${string}`,
+        topUpForm.isNative ? '0x0000000000000000000000000000000000000000' as `0x${string}` : topUpForm.token as `0x${string}`,
         amount
       );
       
@@ -320,7 +324,7 @@ export default function AdminPage() {
       });
       
       // Reset form and reload data
-      setTopUpForm({ token: '', amount: '' });
+      setTopUpForm({ token: '', amount: '', isNative: false });
       await loadPoolsAndBalances();
     } catch (err) {
       console.error('Failed to top up:', err);
@@ -340,7 +344,7 @@ export default function AdminPage() {
       
       setTransactionStatus({ type: null, message: '' });
       const result = await increasePool(
-        increasePoolForm.token as `0x${string}`,
+        increasePoolForm.isNative ? '0x0000000000000000000000000000000000000000' as `0x${string}` : increasePoolForm.token as `0x${string}`,
         amount
       );
       
@@ -351,7 +355,7 @@ export default function AdminPage() {
       });
       
       // Reset form and reload data
-      setIncreasePoolForm({ token: '', amount: '' });
+      setIncreasePoolForm({ token: '', amount: '', isNative: false });
       await loadPoolsAndBalances();
     } catch (err) {
       console.error('Failed to increase pool:', err);
@@ -712,11 +716,24 @@ export default function AdminPage() {
                       required
                     />
                   </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="poolIsNative"
+                      checked={poolForm.token === '0x0000000000000000000000000000000000000000'}
+                      onChange={(e) => setPoolForm({ ...poolForm, token: e.target.checked ? '0x0000000000000000000000000000000000000000' : '' })}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor="poolIsNative" className="ml-2 text-sm text-gray-300">
+                      Native Token (ETH)
+                    </label>
+                  </div>
                   
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-gray-700 text-white py-3 px-4 rounded-xl hover:bg-gray-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gray-700 text-white py-3 px-4 rounded-xl hover:bg-gray-600 transition-all duration-300 disabled:opacity-500 disabled:cursor-not-allowed"
                   >
                     {isLoading ? 'Setting Pool...' : 'Set Pool'}
                   </button>
@@ -776,6 +793,19 @@ export default function AdminPage() {
                       required
                     />
                   </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="sendIsNative"
+                      checked={sendForm.isNative}
+                      onChange={(e) => setSendForm({ ...sendForm, isNative: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor="sendIsNative" className="ml-2 text-sm text-gray-300">
+                      Native Token (ETH)
+                    </label>
+                  </div>
                   
                   <button
                     type="submit"
@@ -827,6 +857,19 @@ export default function AdminPage() {
                       className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-transparent text-white placeholder-gray-400"
                       required
                     />
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="withdrawIsNative"
+                      checked={withdrawForm.isNative}
+                      onChange={(e) => setWithdrawForm({ ...withdrawForm, isNative: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor="withdrawIsNative" className="ml-2 text-sm text-gray-300">
+                      Native Token (ETH)
+                    </label>
                   </div>
                   
                   <button
@@ -946,7 +989,18 @@ export default function AdminPage() {
                     />
                   </div>
 
-
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="topUpIsNative"
+                      checked={topUpForm.isNative}
+                      onChange={(e) => setTopUpForm({ ...topUpForm, isNative: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor="topUpIsNative" className="ml-2 text-sm text-gray-300">
+                      Native Token (ETH)
+                    </label>
+                  </div>
                   
                   <button
                     type="submit"
@@ -998,6 +1052,19 @@ export default function AdminPage() {
                       className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-transparent text-white placeholder-gray-400"
                       required
                     />
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="increasePoolIsNative"
+                      checked={increasePoolForm.isNative}
+                      onChange={(e) => setIncreasePoolForm({ ...increasePoolForm, isNative: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor="increasePoolIsNative" className="ml-2 text-sm text-gray-300">
+                      Native Token (ETH)
+                    </label>
                   </div>
                   
                   <button

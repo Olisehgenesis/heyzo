@@ -648,16 +648,18 @@ export function useHeyZo(): UseHeyZoReturn {
     setError(null);
 
     try {
-      // Check if we need to approve the token first
-      const currentAllowance = await getTokenAllowance(token, address, HEYZO_CONTRACT_ADDRESS);
-      if (currentAllowance < amount) {
-        // Need to approve first - show user what's happening
-        setError('Approving token... Please confirm the approval transaction in your wallet.');
-        await approveToken(token, HEYZO_CONTRACT_ADDRESS, amount);
-        
-        // Wait for approval to be mined and show progress
-        setError('Token approved! Now processing top up... Please confirm the top up transaction.');
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait longer for approval to be mined
+      // Check if we need to approve the token first (only for ERC20 tokens, not native ETH)
+      if (token !== '0x0000000000000000000000000000000000000000') {
+        const currentAllowance = await getTokenAllowance(token, address, HEYZO_CONTRACT_ADDRESS);
+        if (currentAllowance < amount) {
+          // Need to approve first - show user what's happening
+          setError('Approving token... Please confirm the approval transaction in your wallet.');
+          await approveToken(token, HEYZO_CONTRACT_ADDRESS, amount);
+          
+          // Wait for approval to be mined and show progress
+          setError('Token approved! Now processing top up... Please confirm the top up transaction.');
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait longer for approval to be mined
+        }
       }
 
       // Generate referral tag
@@ -668,7 +670,7 @@ export function useHeyZo(): UseHeyZoReturn {
         abi: HeyZoABI,
         functionName: 'topUp',
         args: [token, amount],
-        value: BigInt(0), // Always false for isNative
+        value: token === '0x0000000000000000000000000000000000000000' ? amount : BigInt(0), // Send ETH if native token
       });
 
       // Submit referral to Divvi
