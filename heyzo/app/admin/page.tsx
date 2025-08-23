@@ -164,7 +164,7 @@ export default function AdminPage() {
       if (tokenBalance < total) {
         setTransactionStatus({
           type: 'error',
-          message: `Not enough tokens. Available: ${formatEther(tokenBalance)}, Required: ${poolForm.total}`
+          message: `Not enough tokens. Available: ${Number(formatEther(tokenBalance)).toFixed(2)}, Required: ${poolForm.total}`
         });
         return;
       }
@@ -207,7 +207,7 @@ export default function AdminPage() {
       if (tokenBalance < amount) {
         setTransactionStatus({
           type: 'error',
-          message: `Not enough tokens. Available: ${formatEther(tokenBalance)}, Required: ${sendForm.amount}`
+          message: `Not enough tokens. Available: ${Number(formatEther(tokenBalance)).toFixed(2)}, Required: ${sendForm.amount}`
         });
         return;
       }
@@ -592,13 +592,13 @@ export default function AdminPage() {
                         <div className="flex justify-between">
                           <span className="text-gray-400">Total Available:</span>
                           <span className="font-mono font-medium text-white">
-                            {formatEther(pool.total)} tokens
+                            {Number(formatEther(pool.total)).toFixed(2)} tokens
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-400">Max Per Claim:</span>
                           <span className="font-mono font-medium text-white">
-                            {formatEther(pool.maxSend)} tokens
+                            {Number(formatEther(pool.maxSend)).toFixed(2)} tokens
                           </span>
                         </div>
                       </div>
@@ -1071,7 +1071,7 @@ export default function AdminPage() {
                         </span>
                         {batchSendForm.maxSend && (
                           <span className="text-blue-400">
-                            Max Total: {formatEther(parseEther(batchSendForm.maxSend) * BigInt(batchSendForm.recipients.split(',').filter(addr => addr.trim().length > 0).length))} tokens
+                            Max Total: {Number(formatEther(parseEther(batchSendForm.maxSend) * BigInt(batchSendForm.recipients.split(',').filter(addr => addr.trim().length > 0).length))).toFixed(2)} tokens
                           </span>
                         )}
                       </div>
@@ -1129,7 +1129,7 @@ export default function AdminPage() {
                       <Wallet className="w-6 h-6 text-gray-400" />
                     </div>
                     <p className="text-2xl font-bold text-white mb-2">
-                      {formatEther(balance)} tokens
+                      {Number(formatEther(balance)).toFixed(2)} tokens
                     </p>
                     <p className="text-sm text-gray-400 font-mono">{formatAddress(token)}</p>
                   </div>

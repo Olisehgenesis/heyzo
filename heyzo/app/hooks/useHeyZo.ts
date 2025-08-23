@@ -233,7 +233,7 @@ export function useHeyZo(): UseHeyZoReturn {
         address: HEYZO_CONTRACT_ADDRESS,
         abi: HeyZoABI,
         functionName: 'getUserInfo',
-        args: [token], // Only pass token as ABI expects
+        args: [user, token], // Pass both user and token as ABI expects
       });
 
       const userInfoResult = result as [bigint, bigint, bigint];

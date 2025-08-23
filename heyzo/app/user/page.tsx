@@ -51,6 +51,7 @@ export default function UserPage() {
   const [isClaiming, setIsClaiming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [claimSuccess, setClaimSuccess] = useState<{ token: string; hash: string } | null>(null);
 
   const [fundPoolForm, setFundPoolForm] = useState({
     token: '',
@@ -74,30 +75,39 @@ export default function UserPage() {
   const loadPoolsAndUserInfo = useCallback(async () => {
     if (!address) return;
 
+    console.log('Loading pools and user info for address:', address);
+    
     const poolsData: Array<{ token: `0x${string}`; pool: any }> = [];
     const userInfosData: Array<{ token: `0x${string}`; info: any }> = [];
     const balancesData: Array<{ token: `0x${string}`; balance: bigint }> = [];
 
     for (const token of commonTokens) {
       try {
+        console.log('Loading data for token:', token);
+        
         const pool = await getPool(token);
+        console.log('Pool data:', pool);
         if (pool && pool.total > BigInt(0)) {
           poolsData.push({ token, pool });
         }
 
         const userInfo = await getUserInfo(address, token);
+        console.log('User info for token:', token, userInfo);
         if (userInfo) {
           userInfosData.push({ token, info: userInfo });
         }
 
         // Load contract balance
         const balance = await getContractBalance(token);
+        console.log('Contract balance for token:', token, balance);
         balancesData.push({ token, balance });
       } catch (err) {
         console.error(`Failed to load data for token ${token}:`, err);
       }
     }
 
+    console.log('Final data:', { poolsData, userInfosData, balancesData });
+    
     setPools(poolsData);
     setUserInfos(userInfosData);
     setContractBalances(balancesData);
@@ -116,8 +126,22 @@ export default function UserPage() {
     try {
       const result = await claim(selectedToken);
       console.log('Claim successful:', result.hash);
+      
+      // Clear any previous success message
+      setClaimSuccess(null);
+      
+      // Wait a bit for the transaction to be processed
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // Reload data after successful claim
       await loadPoolsAndUserInfo();
+      
+      // Show success message
+      setClaimSuccess({ token: selectedToken, hash: result.hash });
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setClaimSuccess(null), 5000);
+      
     } catch (err) {
       console.error('Claim failed:', err);
     } finally {
@@ -332,7 +356,16 @@ export default function UserPage() {
         return (
           <div className="space-y-6">
             <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
-              <h3 className="text-xl font-semibold text-white mb-6">Claim Your Rewards</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-white">Claim Your Rewards</h3>
+                <button
+                  onClick={loadPoolsAndUserInfo}
+                  disabled={isLoading}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl transition-colors duration-300 disabled:opacity-50"
+                >
+                  {isLoading ? 'Refreshing...' : 'Refresh Data'}
+                </button>
+              </div>
               
               <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 mb-6">
                 <div className="flex items-start space-x-3">
@@ -381,19 +414,19 @@ export default function UserPage() {
                           <div className="bg-white/10 rounded-xl p-4">
                             <p className="text-white/60 text-sm">Available</p>
                             <p className="text-xl font-bold text-white">
-                              {formatEther(pool.total)} tokens
+                              {Number(formatEther(pool.total)).toFixed(2)} tokens
                             </p>
                           </div>
                           <div className="bg-white/10 rounded-xl p-4">
                             <p className="text-white/60 text-sm">Max Claim</p>
                             <p className="text-xl font-bold text-white">
-                              {formatEther(pool.maxSend)} tokens
+                              {Number(formatEther(pool.maxSend)).toFixed(2)} tokens
                             </p>
                           </div>
                           <div className="bg-white/10 rounded-xl p-4">
                             <p className="text-white/60 text-sm">Your Claim</p>
                             <p className="text-xl font-bold text-white">
-                              {userInfo ? formatEther(userInfo.info.effectiveMaxSend) : '0'} tokens
+                              {userInfo ? Number(formatEther(userInfo.info.effectiveMaxSend)).toFixed(2) : '0.00'} tokens
                             </p>
                           </div>
                         </div>
@@ -474,6 +507,17 @@ export default function UserPage() {
                 </div>
               )}
             </div>
+            
+            {/* Success Message */}
+            {claimSuccess && (
+              <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-4">
+                <div className="flex items-center text-green-300">
+                  <span className="text-sm font-semibold">
+                    ✅ Claim successful! Transaction hash: {claimSuccess.hash.slice(0, 10)}...{claimSuccess.hash.slice(-8)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         );
         
@@ -504,13 +548,13 @@ export default function UserPage() {
                         <div className="flex justify-between">
                           <span className="text-white/60">Total Available:</span>
                           <span className="font-mono font-medium text-white">
-                            {formatEther(pool.total)} tokens
+                            {Number(formatEther(pool.total)).toFixed(2)} tokens
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-white/60">Max Per Claim:</span>
                           <span className="font-mono font-medium text-white">
-                            {formatEther(pool.maxSend)} tokens
+                            {Number(formatEther(pool.maxSend)).toFixed(2)} tokens
                           </span>
                         </div>
                       </div>
@@ -669,7 +713,7 @@ export default function UserPage() {
                   {contractBalances.map(({ token, balance }) => (
                     <div key={token} className="bg-white/10 rounded-xl p-4">
                       <h5 className="text-white font-medium mb-2">{formatTokenName(token)}</h5>
-                      <p className="text-2xl font-bold text-white">{formatEther(balance)}</p>
+                      <p className="text-2xl font-bold text-white">{Number(formatEther(balance)).toFixed(2)}</p>
                     </div>
                   ))}
                 </div>
