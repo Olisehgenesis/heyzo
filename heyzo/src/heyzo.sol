@@ -76,6 +76,39 @@ contract HeyZo {
         pool.total += amount;
     }
 
+    // ✅ Admin Batch Send with random between 0.01 and maxSend
+    function adminBatchSend(address token, address[] calldata recipients, uint256 maxSend) external onlyAdmin {
+        require(maxSend > 0, "Max send must be > 0");
+        require(recipients.length > 0, "No recipients");
+
+        uint256 decimals = (token == address(0)) ? 18 : 18; // assume ERC20 has 18 decimals, can adapt
+        uint256 minSend = 10 ** (decimals - 2); // 0.01 units (10^16 if 18 decimals)
+
+        uint256 totalRequired = 0;
+        uint256[] memory amounts = new uint256[](recipients.length);
+
+        for (uint256 i = 0; i < recipients.length; i++) {
+            uint256 rand = uint256(
+                keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender, recipients[i], i))
+            );
+            uint256 sendAmount = (rand % (maxSend - minSend + 1)) + minSend;
+            amounts[i] = sendAmount;
+            totalRequired += sendAmount;
+        }
+
+        if (token == address(0)) {
+            require(address(this).balance >= totalRequired, "Not enough native balance");
+            for (uint256 i = 0; i < recipients.length; i++) {
+                payable(recipients[i]).transfer(amounts[i]);
+            }
+        } else {
+            require(IERC20(token).balanceOf(address(this)) >= totalRequired, "Not enough token balance");
+            for (uint256 i = 0; i < recipients.length; i++) {
+                IERC20(token).transfer(recipients[i], amounts[i]);
+            }
+        }
+    }
+
     // Users claim (ERC20 or Native)
     function claim(address token) external {
         UserInfo storage u = userInfo[msg.sender][token];
@@ -132,10 +165,11 @@ contract HeyZo {
 
     // Admin withdraw leftover
     function withdraw(address token, uint256 amount) external onlyAdmin {
-        Pool storage pool = pools[token];
-        if (pool.isNative) {
+        if (token == address(0)) {
+            require(address(this).balance >= amount, "Not enough native balance");
             payable(admin).transfer(amount);
         } else {
+            require(IERC20(token).balanceOf(address(this)) >= amount, "Not enough token balance");
             IERC20(token).transfer(admin, amount);
         }
     }

@@ -53,7 +53,7 @@ A revolutionary decentralized reward system built on the Celo blockchain. Users 
    ```
 
 2. **Install dependencies**
-   ```bash
+```bash
    pnpm install
    # or
    npm install
@@ -73,8 +73,8 @@ A revolutionary decentralized reward system built on the Celo blockchain. Users 
 
 4. **Run the development server**
    ```bash
-   pnpm dev
-   # or
+pnpm dev
+# or
    npm run dev
    ```
 

@@ -112,16 +112,9 @@ export default function UserPage() {
   const handleClaim = async () => {
     if (!selectedToken || !address) return;
 
-    // Find the user info for this token
-    const userInfo = userInfos.find(ui => ui.token === selectedToken);
-    if (!userInfo) return;
-
-    // Use the effective max send amount as the claim amount
-    const claimAmount = userInfo.info.effectiveMaxSend;
-
     setIsClaiming(true);
     try {
-      const result = await claim(selectedToken, claimAmount);
+      const result = await claim(selectedToken);
       console.log('Claim successful:', result.hash);
       // Reload data after successful claim
       await loadPoolsAndUserInfo();
@@ -341,6 +334,23 @@ export default function UserPage() {
             <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
               <h3 className="text-xl font-semibold text-white mb-6">Claim Your Rewards</h3>
               
+              <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">i</span>
+                  </div>
+                  <div className="text-blue-200 text-sm">
+                    <p className="font-semibold mb-1">How Claiming Works:</p>
+                    <ul className="space-y-1">
+                      <li>• Each user has a 15-minute cooldown between claims (per token)</li>
+                      <li>• Claim amounts are random between 0.01 and max pool amount</li>
+                      <li>• Build streaks by claiming daily for boosted rewards</li>
+                      <li>• Streak bonus: +10% per 10 consecutive days</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
               {pools.length === 0 ? (
                 <div className="text-center py-12">
                   <Gift className="w-16 h-16 text-white/40 mx-auto mb-4" />
@@ -350,7 +360,11 @@ export default function UserPage() {
                 <div className="space-y-6">
                   {pools.map(({ token, pool }) => {
                     const userInfo = userInfos.find(ui => ui.token === token);
-                    const canClaim = userInfo && userInfo.info.effectiveMaxSend > BigInt(0);
+                    const now = BigInt(Math.floor(Date.now() / 1000));
+                    const cooldownPeriod = BigInt(15 * 60); // 15 minutes in seconds
+                    const canClaim = userInfo ? 
+                      (userInfo.info.lastClaim === BigInt(0) || now >= userInfo.info.lastClaim + cooldownPeriod) : 
+                      true;
                     
                     return (
                       <div key={token} className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-xl rounded-2xl p-6 border border-purple-500/30">
@@ -384,6 +398,16 @@ export default function UserPage() {
                           </div>
                         </div>
                         
+                        {userInfo && userInfo.info.effectiveMaxSend === BigInt(0) && (
+                          <div className="mb-6 p-3 bg-red-500/20 border border-red-500/30 rounded-xl">
+                            <div className="flex items-center text-red-300">
+                              <span className="text-sm">
+                                ⚠️ Pool max claim amount is 0. Please contact admin to configure this pool properly.
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
                         {userInfo && (
                           <div className="bg-white/10 rounded-xl p-4 mb-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -399,11 +423,24 @@ export default function UserPage() {
                               </div>
                               <div>
                                 <p className="text-white/60 text-sm">Status</p>
-                                <p className="text-lg font-bold text-green-400">
-                                  {canClaim ? 'Ready to Claim' : 'Claimed Today'}
+                                <p className={`text-lg font-bold ${
+                                  canClaim ? 'text-green-400' : 'text-yellow-400'
+                                }`}>
+                                  {canClaim ? 'Ready to Claim' : 'On Cooldown'}
                                 </p>
                               </div>
                             </div>
+                            
+                            {!canClaim && userInfo.info.lastClaim > BigInt(0) && (
+                              <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-xl">
+                                <div className="flex items-center text-yellow-300">
+                                  <Clock className="w-4 h-4 mr-2" />
+                                  <span className="text-sm">
+                                    Next claim available in: {formatTime(cooldownPeriod - (now - userInfo.info.lastClaim))}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         
@@ -412,7 +449,7 @@ export default function UserPage() {
                             setSelectedToken(token);
                             handleClaim();
                           }}
-                          disabled={!canClaim || isClaiming}
+                          disabled={!canClaim || isClaiming || (userInfo && userInfo.info.effectiveMaxSend === BigInt(0))}
                           className="group relative w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 px-4 rounded-xl hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
                         >
                           <span className="relative z-10 flex items-center justify-center">
@@ -424,7 +461,8 @@ export default function UserPage() {
                             ) : (
                               <>
                                 <Gift className="w-5 h-5 mr-3" />
-                                {canClaim ? 'Claim Rewards' : 'Already Claimed'}
+                                {userInfo && userInfo.info.effectiveMaxSend === BigInt(0) ? 'Pool Not Configured' : 
+                                 canClaim ? 'Claim Rewards Now' : 'Claim on Cooldown'}
                               </>
                             )}
                           </span>

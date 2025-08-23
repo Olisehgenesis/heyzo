@@ -19,7 +19,7 @@ import { ERC20ABI } from '../abi/erc20';
 
 // Contract address - you'll need to set this to your deployed contract address
 //get from env NEXT_PUBLIC_CONTRACT_ADDRESS
-const HEYZO_CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xaD8b79865B640d76B734988C6A795249Ad4cF86e') as `0x${string}`;
+const HEYZO_CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xc9b1fdeb26a06d5b4f9131c153c0c8c792b13f57') as `0x${string}`;
 
 // Validate contract address
 if (!HEYZO_CONTRACT_ADDRESS || HEYZO_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
@@ -57,6 +57,7 @@ export interface UseHeyZoReturn {
   connect: () => void;
   disconnect: () => void;
   switchChain: (chainId: number) => Promise<void>;
+  ensureCeloNetwork: () => Promise<void>;
   
   // Contract read functions
   getPool: (token: `0x${string}`) => Promise<Pool | null>;
@@ -64,9 +65,10 @@ export interface UseHeyZoReturn {
   getContractBalance: (token: `0x${string}`) => Promise<bigint>;
   
   // Contract write functions
-  claim: (token: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
+  claim: (token: `0x${string}`) => Promise<{ hash: string }>;
   setPool: (token: `0x${string}`, total: bigint, maxSend: bigint, isNative: boolean) => Promise<{ hash: string }>;
   adminSend: (token: `0x${string}`, to: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
+  adminBatchSend: (token: `0x${string}`, recipients: `0x${string}`[], maxSend: bigint) => Promise<{ hash: string }>;
   withdraw: (token: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
   fundPool: (token: `0x${string}`, amount: bigint, isNative: boolean) => Promise<{ hash: string }>;
   topUp: (token: `0x${string}`, amount: bigint) => Promise<{ hash: string }>;
@@ -93,6 +95,7 @@ export function useHeyZo(): UseHeyZoReturn {
   const { writeContractAsync: writeClaimAsync } = useWriteContract();
   const { writeContractAsync: writeSetPoolAsync } = useWriteContract();
   const { writeContractAsync: writeAdminSendAsync } = useWriteContract();
+  const { writeContractAsync: writeAdminBatchSendAsync } = useWriteContract();
   const { writeContractAsync: writeWithdrawAsync } = useWriteContract();
   const { writeContractAsync: writeFundPoolAsync } = useWriteContract();
   const { writeContractAsync: writeTopUpAsync } = useWriteContract();
@@ -294,7 +297,7 @@ export function useHeyZo(): UseHeyZoReturn {
   }, [chainId]);
 
   // Claim function using Wagmi
-  const claim = useCallback(async (token: `0x${string}`, amount: bigint): Promise<{ hash: string }> => {
+  const claim = useCallback(async (token: `0x${string}`): Promise<{ hash: string }> => {
     if (!address) {
       throw new Error('Wallet not connected');
     }
@@ -312,7 +315,7 @@ export function useHeyZo(): UseHeyZoReturn {
         address: HEYZO_CONTRACT_ADDRESS,
         abi: HeyZoABI,
         functionName: 'claim',
-        args: [token, amount],
+        args: [token],
       });
 
       // Submit referral to Divvi
@@ -343,10 +346,8 @@ export function useHeyZo(): UseHeyZoReturn {
       throw new Error('Public client not available');
     }
 
-    // Check if connected to Celo network
-    if (chainId !== celo.id) {
-      throw new Error(`Please connect to Celo network. Current chain ID: ${chainId}, Expected: ${celo.id}`);
-    }
+    // Ensure we're on Celo network
+    await ensureCeloNetwork();
 
     setIsLoading(true);
     setError(null);
@@ -378,7 +379,7 @@ export function useHeyZo(): UseHeyZoReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [address, generateReferralTag, submitReferralToDivvi, writeSetPoolAsync, publicClient]);
+  }, [address, generateReferralTag, submitReferralToDivvi, writeSetPoolAsync, publicClient, ensureCeloNetwork]);
 
   // Admin send function (admin only) using Wagmi
   const adminSend = useCallback(async (
@@ -416,6 +417,43 @@ export function useHeyZo(): UseHeyZoReturn {
       setIsLoading(false);
     }
   }, [address, generateReferralTag, submitReferralToDivvi, writeAdminSendAsync]);
+
+  // Admin batch send function (admin only) using Wagmi
+  const adminBatchSend = useCallback(async (
+    token: `0x${string}`, 
+    recipients: `0x${string}`[], 
+    maxSend: bigint
+  ): Promise<{ hash: string }> => {
+    if (!address) {
+      throw new Error('Wallet not connected');
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Generate referral tag
+      const referralTag = generateReferralTag(address);
+      
+      const hash = await writeAdminBatchSendAsync({
+        address: HEYZO_CONTRACT_ADDRESS,
+        abi: HeyZoABI,
+        functionName: 'adminBatchSend',
+        args: [token, recipients, maxSend],
+      });
+
+      // Submit referral to Divvi
+      await submitReferralToDivvi(hash);
+
+      return { hash };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to admin batch send';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [address, generateReferralTag, submitReferralToDivvi, writeAdminBatchSendAsync]);
 
   // Withdraw function (admin only) using Wagmi
   const withdraw = useCallback(async (token: `0x${string}`, amount: bigint): Promise<{ hash: string }> => {
@@ -662,6 +700,7 @@ export function useHeyZo(): UseHeyZoReturn {
     connect: handleConnect,
     disconnect: handleDisconnect,
     switchChain,
+    ensureCeloNetwork,
     
     // Contract read functions
     getPool,
@@ -672,6 +711,7 @@ export function useHeyZo(): UseHeyZoReturn {
     claim,
     setPool,
     adminSend,
+    adminBatchSend,
     withdraw,
     fundPool,
     topUp,

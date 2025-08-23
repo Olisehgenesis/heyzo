@@ -25,6 +25,29 @@ export const HeyZoABI =  [
         "type": "address"
       },
       {
+        "internalType": "address[]",
+        "name": "recipients",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSend",
+        "type": "uint256"
+      }
+    ],
+    "name": "adminBatchSend",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
         "internalType": "address",
         "name": "to",
         "type": "address"

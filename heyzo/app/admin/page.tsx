@@ -40,6 +40,7 @@ export default function AdminPage() {
     getContractBalance,
     setPool,
     adminSend,
+    adminBatchSend,
     withdraw,
     fundPool,
     topUp,
@@ -96,6 +97,13 @@ export default function AdminPage() {
   const [increasePoolForm, setIncreasePoolForm] = useState({
     token: '',
     amount: ''
+  });
+
+  const [batchSendForm, setBatchSendForm] = useState({
+    token: '',
+    recipients: '',
+    maxSend: '',
+    isNative: false
   });
 
   // Common token addresses
@@ -354,6 +362,52 @@ export default function AdminPage() {
     }
   };
 
+  const handleBatchSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!batchSendForm.token || !batchSendForm.recipients || !batchSendForm.maxSend) return;
+
+    try {
+      const maxSend = parseEther(batchSendForm.maxSend);
+      
+      // Parse recipients from comma-separated string
+      const recipients = batchSendForm.recipients
+        .split(',')
+        .map(addr => addr.trim())
+        .filter(addr => addr.length > 0) as `0x${string}`[];
+      
+      if (recipients.length === 0) {
+        setTransactionStatus({
+          type: 'error',
+          message: 'Please provide at least one recipient address'
+        });
+        return;
+      }
+      
+      setTransactionStatus({ type: null, message: '' });
+      const result = await adminBatchSend(
+        batchSendForm.isNative ? '0x0000000000000000000000000000000000000000' as `0x${string}` : batchSendForm.token as `0x${string}`,
+        recipients,
+        maxSend
+      );
+      
+      setTransactionStatus({
+        type: 'success',
+        message: `Batch send successful! Sent to ${recipients.length} recipients`,
+        hash: result.hash
+      });
+      
+      // Reset form and reload data
+      setBatchSendForm({ token: '', recipients: '', maxSend: '', isNative: false });
+      await loadPoolsAndBalances();
+    } catch (err) {
+      console.error('Failed to batch send:', err);
+      setTransactionStatus({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to batch send'
+      });
+    }
+  };
+
   const formatAddress = (address: `0x${string}`) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
@@ -455,6 +509,7 @@ export default function AdminPage() {
   const actionTabs = [
     { id: 'setPool', name: 'Create Pool', icon: Plus },
     { id: 'adminSend', name: 'Send Tokens', icon: Send },
+    { id: 'batchSend', name: 'Batch Send', icon: Users },
     { id: 'withdraw', name: 'Withdraw', icon: Download },
     { id: 'fundPool', name: 'Fund Pool', icon: Heart },
     { id: 'topUp', name: 'Top Up', icon: Plus },
@@ -951,6 +1006,109 @@ export default function AdminPage() {
                     className="w-full bg-gray-700 text-white py-3 px-4 rounded-xl hover:bg-gray-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? 'Increasing Pool...' : 'Increase Pool'}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {actionTab === 'batchSend' && (
+              <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center mr-3">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Batch Send Tokens</h3>
+                </div>
+                <p className="text-gray-400 text-sm mb-6">
+                  Send tokens to multiple recipients from a single pool. This reduces the pool's total allocation.
+                </p>
+                <div className="bg-blue-900/20 border border-blue-700 rounded-xl p-4 mb-6">
+                  <p className="text-blue-200 text-sm">
+                    <strong>Note:</strong> Each recipient will receive a random amount between 0.01 and the max amount specified. 
+                    The total distributed will be deducted from the pool's allocation.
+                  </p>
+                </div>
+                <form onSubmit={handleBatchSend} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Token Address</label>
+                    <select
+                      value={batchSendForm.token}
+                      onChange={(e) => setBatchSendForm({ ...batchSendForm, token: e.target.value })}
+                      className={`w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-transparent text-white ${
+                        batchSendForm.isNative ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      required
+                      disabled={batchSendForm.isNative}
+                    >
+                      <option value="">Select Token</option>
+                      {commonTokens.map(token => (
+                        <option key={token} value={token}>
+                          {formatTokenName(token)} ({formatAddress(token)})
+                        </option>
+                      ))}
+                    </select>
+                    {batchSendForm.isNative && (
+                      <p className="text-sm text-gray-400 mt-1">
+                        Using native CELO/ETH tokens
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Recipient Addresses (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={batchSendForm.recipients}
+                      onChange={(e) => setBatchSendForm({ ...batchSendForm, recipients: e.target.value })}
+                      placeholder="0x1234567890123456789012345678901234567890, 0x9876543210987654321098765432109876543210"
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-transparent text-white placeholder-gray-400"
+                      required
+                    />
+                    {batchSendForm.recipients && (
+                      <div className="mt-2 flex items-center justify-between text-sm">
+                        <span className="text-gray-400">
+                          Wallets: {batchSendForm.recipients.split(',').filter(addr => addr.trim().length > 0).length}
+                        </span>
+                        {batchSendForm.maxSend && (
+                          <span className="text-blue-400">
+                            Max Total: {formatEther(parseEther(batchSendForm.maxSend) * BigInt(batchSendForm.recipients.split(',').filter(addr => addr.trim().length > 0).length))} tokens
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Max Per Claim</label>
+                    <input
+                      type="text"
+                      value={batchSendForm.maxSend}
+                      onChange={(e) => setBatchSendForm({ ...batchSendForm, maxSend: e.target.value })}
+                      placeholder="0.0"
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-transparent text-white placeholder-gray-400"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isNative"
+                      checked={batchSendForm.isNative}
+                      onChange={(e) => setBatchSendForm({ ...batchSendForm, isNative: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor="isNative" className="ml-2 text-sm text-gray-300">
+                      Native Token (CELO/ETH)
+                    </label>
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-gray-700 text-white py-3 px-4 rounded-xl hover:bg-gray-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? 'Batch Sending...' : 'Batch Send Tokens'}
                   </button>
                 </form>
               </div>
